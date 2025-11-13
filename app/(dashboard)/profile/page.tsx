@@ -8,15 +8,30 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useProfile } from "@/hooks/use-profile";
-import { useState, useRef } from "react";
-import { User, Camera, Lock, Bell, Loader2, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useState, useRef, useEffect } from "react";
+import { User, Camera, Lock, Bell, Loader2, Eye, EyeOff, ArrowLeft, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ProfilePage() {
+    const router = useRouter();
+    const { logout } = useAuth();
     const { user, loading, updateProfile, changePassword, uploadAvatar } = useProfile();
     const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications'>('profile');
     const [isEditing, setIsEditing] = useState(false);
     const [showCurrentPassword, setShowCurrentPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showPasswordChangedDialog, setShowPasswordChangedDialog] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [profileForm, setProfileForm] = useState({
@@ -27,8 +42,8 @@ export default function ProfilePage() {
     });
 
     const [passwordForm, setPasswordForm] = useState({
-        current_password: '',
-        new_password: '',
+        old_password: '',
+        password: '',
     });
 
     const [notificationSettings, setNotificationSettings] = useState({
@@ -37,9 +52,7 @@ export default function ProfilePage() {
         send_sms: false,
         send_push: true,
     });
-
-    // Update forms when user data is loaded
-    useState(() => {
+    useEffect(() => {
         if (user) {
             setProfileForm({
                 first_name: user.first_name || '',
@@ -54,7 +67,7 @@ export default function ProfilePage() {
                 send_push: user.send_push !== false,
             });
         }
-    });
+    }, [user]);
 
     const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setProfileForm({ ...profileForm, [e.target.id]: e.target.value });
@@ -72,8 +85,22 @@ export default function ProfilePage() {
 
     const handlePasswordSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        await changePassword(passwordForm);
-        setPasswordForm({ current_password: '', new_password: '' });
+        try {
+            await changePassword(passwordForm);
+            setPasswordForm({ old_password: '', password: '' });
+            setShowPasswordChangedDialog(true);
+        } catch (error) {
+            // Error already handled in hook
+        }
+    };
+
+    const handleLoginNow = async () => {
+        await logout();
+        router.push('/login');
+    };
+
+    const handleLoginLater = () => {
+        setShowPasswordChangedDialog(false);
     };
 
     const handleNotificationSave = async (e: React.FormEvent) => {
@@ -124,11 +151,20 @@ export default function ProfilePage() {
 
     return (
         <div className="space-y-8">
-            <div className="text-center space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight">Profile Settings</h1>
-                <p className="text-zinc-500 dark:text-zinc-400">
-                    Manage your account information and preferences
-                </p>
+            <div className="flex items-center gap-4 mb-6">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.back()}
+                >
+                    <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div className="text-center flex-1">
+                    <h1 className="text-3xl font-bold tracking-tight">Profile Settings</h1>
+                    <p className="text-zinc-500 dark:text-zinc-400">
+                        Manage your account information and preferences
+                    </p>
+                </div>
             </div>
 
             <div className="max-w-4xl mx-auto">
@@ -321,12 +357,12 @@ export default function ProfilePage() {
                         <CardContent>
                             <form onSubmit={handlePasswordSave} className="space-y-5">
                                 <div className="space-y-2">
-                                    <Label htmlFor="current_password">Current Password</Label>
+                                    <Label htmlFor="old_password">Current Password</Label>
                                     <div className="relative">
                                         <Input
-                                            id="current_password"
+                                            id="old_password"
                                             type={showCurrentPassword ? "text" : "password"}
-                                            value={passwordForm.current_password}
+                                            value={passwordForm.old_password}
                                             onChange={handlePasswordChange}
                                             disabled={loading}
                                             required
@@ -342,12 +378,12 @@ export default function ProfilePage() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="new_password">New Password</Label>
+                                    <Label htmlFor="password">New Password</Label>
                                     <div className="relative">
                                         <Input
-                                            id="new_password"
+                                            id="password"
                                             type={showNewPassword ? "text" : "password"}
-                                            value={passwordForm.new_password}
+                                            value={passwordForm.password}
                                             onChange={handlePasswordChange}
                                             disabled={loading}
                                             required
@@ -465,6 +501,37 @@ export default function ProfilePage() {
                     </Card>
                 )}
             </div>
+
+            {/* Password Changed Dialog */}
+            <AlertDialog open={showPasswordChangedDialog} onOpenChange={setShowPasswordChangedDialog}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                                <Lock className="h-6 w-6 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                                <AlertDialogTitle>Password Changed Successfully</AlertDialogTitle>
+                                <AlertDialogDescription className="text-left">
+                                    Your password has been updated. For security reasons, we recommend logging in again with your new password.
+                                </AlertDialogDescription>
+                            </div>
+                        </div>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={handleLoginLater}>
+                            Continue Session
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleLoginNow}
+                            className="bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-zinc-200"
+                        >
+                            <LogOut className="w-4 h-4 mr-2" />
+                            Login Now
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

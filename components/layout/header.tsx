@@ -11,13 +11,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Users2 } from "lucide-react";
+import { Users2, User, LogOut, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export function Header() {
     const router = useRouter();
+    const { user, logout } = useAuth();
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
+    const handleLogout = async () => {
+        await logout();
         router.push("/login");
     };
 
@@ -38,19 +40,43 @@ export function Header() {
                     <ThemeToggle />
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <div className="flex items-center space-x-3 cursor-pointer">
+                            <div className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity">
                                 <Avatar>
-                                    <AvatarImage src="https://ui-avatars.com/api/?name=Shahid+Raza" alt="User" />
-                                    <AvatarFallback>SR</AvatarFallback>
+                                    <AvatarImage 
+                                        src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}`} 
+                                        alt={user?.name || 'User'} 
+                                    />
+                                    <AvatarFallback>
+                                        {user?.first_name?.[0] || 'U'}{user?.last_name?.[0] || ''}
+                                    </AvatarFallback>
                                 </Avatar>
-                                <span className="hidden sm:block text-sm font-medium">Shahid Raza</span>
+                                <span className="hidden sm:block text-sm font-medium">{user?.name || 'User'}</span>
                             </div>
                         </DropdownMenuTrigger>
 
-                        <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                        <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuLabel>
+                                <div className="flex flex-col space-y-1">
+                                    <p className="text-sm font-medium">{user?.name}</p>
+                                    <p className="text-xs text-zinc-500 dark:text-zinc-400">{user?.email}</p>
+                                </div>
+                            </DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push("/profile")}>
+                                <User className="w-4 h-4 mr-2" />
+                                Profile Settings
+                            </DropdownMenuItem>
+                            {user?.role === 'Admin' && (
+                                <DropdownMenuItem onClick={() => router.push("/employees")}>
+                                    <Users2 className="w-4 h-4 mr-2" />
+                                    Manage Employees
+                                </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={handleLogout} className="text-red-600 dark:text-red-400">
+                                <LogOut className="w-4 h-4 mr-2" />
+                                Logout
+                            </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>

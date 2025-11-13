@@ -3,31 +3,34 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Users, MessageSquare, UserPlus, TrendingUp, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Users, MessageSquare, UserPlus, TrendingUp, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-
-const stats = [
-    { label: "Total Users", value: "128", change: "+12 since last week", icon: Users, color: "text-blue-600 dark:text-blue-400" },
-    { label: "Active Now", value: "34", change: "Online", icon: TrendingUp, color: "text-green-600 dark:text-green-400" },
-    { label: "Messages", value: "89", change: "+7 today", icon: MessageSquare, color: "text-purple-600 dark:text-purple-400" },
-    { label: "Employees", value: "45", change: "Registered", icon: UserPlus, color: "text-orange-600 dark:text-orange-400" },
-];
-
-const recentActivity = [
-    { user: "Alice Johnson", action: "Started a conversation", time: "2 min ago", avatar: "https://ui-avatars.com/api/?name=Alice+Johnson" },
-    { user: "Bob Smith", action: "Updated profile", time: "15 min ago", avatar: "https://ui-avatars.com/api/?name=Bob+Smith" },
-    { user: "Carol Davis", action: "Added new employee", time: "1 hour ago", avatar: "https://ui-avatars.com/api/?name=Carol+Davis" },
-    { user: "David Wilson", action: "Sent a message", time: "2 hours ago", avatar: "https://ui-avatars.com/api/?name=David+Wilson" },
-];
+import { useAuth } from "@/hooks/use-auth";
+import { useEmployees } from "@/hooks/use-employees";
+import { useEffect } from "react";
 
 export default function DashboardPage() {
     const router = useRouter();
+    const { user } = useAuth();
+    const { employees, loading, totalCount, fetchEmployees } = useEmployees();
+
+    useEffect(() => {
+        fetchEmployees();
+    }, [fetchEmployees]);
+
+    const stats = [
+        { label: "Total Employees", value: loading ? "..." : totalCount.toString(), change: "Registered", icon: Users, color: "text-blue-600 dark:text-blue-400" },
+        { label: "Active Now", value: employees.filter(e => e.last_login_at).length.toString(), change: "Online recently", icon: TrendingUp, color: "text-green-600 dark:text-green-400" },
+        { label: "Admins", value: employees.filter(e => e.role === 'Admin').length.toString(), change: "Admin users", icon: UserPlus, color: "text-purple-600 dark:text-purple-400" },
+        { label: "Regular Users", value: employees.filter(e => e.role === 'User').length.toString(), change: "Standard access", icon: MessageSquare, color: "text-orange-600 dark:text-orange-400" },
+    ];
 
     return (
         <div className="space-y-8">
             {/* Welcome Section */}
             <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight">Welcome back, { }</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user?.first_name || 'User'}</h1>
                 <p className="text-zinc-600 dark:text-zinc-400">
                     Here's what's happening with your team today.
                 </p>
@@ -74,7 +77,7 @@ export default function DashboardPage() {
                         <Button
                             variant="outline"
                             className="h-20 flex flex-col gap-2"
-                            onClick={() => router.push("/dashboard/employees")}
+                            onClick={() => router.push("/employees")}
                         >
                             <UserPlus className="w-5 h-5" />
                             <span className="text-sm">Add Employee</span>
@@ -90,36 +93,71 @@ export default function DashboardPage() {
                         <Button
                             variant="outline"
                             className="h-20 flex flex-col gap-2"
-                            onClick={() => router.push("/settings")}
+                            onClick={() => router.push("/chat")}
                         >
-                            <TrendingUp className="w-5 h-5" />
-                            <span className="text-sm">Analytics</span>
+                            <MessageSquare className="w-5 h-5" />
+                            <span className="text-sm">Team Chat</span>
                         </Button>
                     </div>
                 </CardContent>
             </Card>
 
-            {/* Recent Activity */}
+            {/* Recent Employees */}
             <Card>
-                <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <CardTitle>Recent Employees</CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => router.push("/employees")}>
+                        View All
+                    </Button>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-4">
-                        {recentActivity.map((activity, index) => (
-                            <div key={index} className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors">
-                                <Avatar>
-                                    <AvatarImage src={activity.avatar} />
-                                    <AvatarFallback>{activity.user[0]}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium">{activity.user}</p>
-                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 truncate">{activity.action}</p>
+                    {loading && employees.length === 0 ? (
+                        <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
+                        </div>
+                    ) : employees.length === 0 ? (
+                        <div className="text-center py-8">
+                            <p className="text-zinc-500">No employees found</p>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-3"
+                                onClick={() => router.push("/employees")}
+                            >
+                                <UserPlus className="w-4 h-4 mr-2" />
+                                Add First Employee
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {employees.slice(0, 5).map((employee) => (
+                                <div
+                                    key={employee.id}
+                                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                                    onClick={() => router.push("/employees")}
+                                >
+                                    <Avatar>
+                                        <AvatarImage src={employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}`} />
+                                        <AvatarFallback>{employee.first_name[0]}{employee.last_name[0]}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium">{employee.name}</p>
+                                        <p className="text-sm text-zinc-600 dark:text-zinc-400 truncate">{employee.email}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={employee.role === 'Admin' ? 'default' : 'secondary'}>
+                                            {employee.role}
+                                        </Badge>
+                                        {employee.last_login_at && (
+                                            <span className="text-xs text-zinc-500 dark:text-zinc-400 whitespace-nowrap">
+                                                Active
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <span className="text-xs text-zinc-500 dark:text-zinc-400">{activity.time}</span>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

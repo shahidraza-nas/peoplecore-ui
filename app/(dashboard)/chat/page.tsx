@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { MessageSquare, Users } from "lucide-react";
+import { MessageSquare, Users, ArrowLeft } from "lucide-react";
 
 const mockUsers = [
     { id: "1", name: "Alice Johnson", avatar: "https://ui-avatars.com/api/?name=Alice+Johnson", status: "online", lastMessage: "Hey, how are you?", time: "2m ago" },
@@ -19,11 +19,20 @@ export default function ChatPage() {
 
     return (
         <div className="space-y-8">
-            <div className="text-center space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
-                <p className="text-zinc-500 dark:text-zinc-400">
-                    Start a conversation with your team members
-                </p>
+            <div className="flex items-center gap-4 mb-6">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => router.back()}
+                >
+                    <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div className="text-center flex-1">
+                    <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
+                    <p className="text-zinc-500 dark:text-zinc-400">
+                        Start a conversation with your team members
+                    </p>
+                </div>
             </div>
 
             <div className="max-w-4xl mx-auto">

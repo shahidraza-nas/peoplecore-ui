@@ -24,7 +24,7 @@ function formatDistanceToNow(date: Date, options?: any): string {
 interface EmployeeTableProps {
   employees: User[];
   onEdit: (employee: User) => void;
-  onDelete: (id: number) => void;
+  onDelete: (employee: User) => void;
 }
 
 export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeTableProps) {
@@ -112,7 +112,7 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onDelete(employee.id)}
+                    onClick={() => onDelete(employee)}
                   >
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
