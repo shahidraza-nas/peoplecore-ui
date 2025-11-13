@@ -105,7 +105,6 @@ export default function Home() {
           </div>
         </div>
       </main>
-
       <AppFooter />
     </div>
   );

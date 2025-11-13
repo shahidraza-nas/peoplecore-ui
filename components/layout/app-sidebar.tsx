@@ -1,14 +1,14 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { MessageSquare, User, Settings, LayoutDashboard } from "lucide-react";
+import { MessageSquare, User, LayoutDashboard, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
     { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+    { name: "Employees", icon: Users, path: "/employees" },
     { name: "Chat", icon: MessageSquare, path: "/chat" },
     { name: "Profile", icon: User, path: "/profile" },
-    { name: "Settings", icon: Settings, path: "/settings" },
 ];
 
 export function AppSidebar() {
