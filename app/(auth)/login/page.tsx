@@ -4,19 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [resetEmail, setResetEmail] = useState("");
+    const [isResetOpen, setIsResetOpen] = useState(false);
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();
         // Later: replace with actual login logic (API call)
         router.push("/dashboard");
+    };
+
+    const handlePasswordReset = (e: React.FormEvent) => {
+        e.preventDefault();
+        // Later: replace with actual API call
+        toast.success(`Password reset link sent to ${resetEmail}`);
+        setIsResetOpen(false);
+        setResetEmail("");
     };
 
     return (
@@ -45,7 +57,16 @@ export default function LoginPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="password">Password</Label>
+                            <button
+                                type="button"
+                                onClick={() => setIsResetOpen(true)}
+                                className="text-sm text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                            >
+                                Forgot password?
+                            </button>
+                        </div>
                         <Input
                             id="password"
                             type="password"
@@ -85,6 +106,46 @@ export default function LoginPage() {
                     </div>
                 </form>
             </CardContent>
+
+            {/* Forgot Password Dialog */}
+            <Dialog open={isResetOpen} onOpenChange={setIsResetOpen}>
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Mail className="w-5 h-5" />
+                            Reset Password
+                        </DialogTitle>
+                        <DialogDescription>
+                            Enter your email address and we'll send you a link to reset your password.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handlePasswordReset} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="reset-email">Email</Label>
+                            <Input
+                                id="reset-email"
+                                type="email"
+                                placeholder="you@example.com"
+                                value={resetEmail}
+                                onChange={(e) => setResetEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsResetOpen(false)}
+                            >
+                                Cancel
+                            </Button>
+                            <Button type="submit">
+                                Send Reset Link
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </Card>
     );
 }

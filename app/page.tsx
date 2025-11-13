@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogIn, UserPlus } from "lucide-react";
 import { AppHeader } from "@/components/layout/app-header";
+import { AppFooter } from "@/components/layout/app-footer";
 import { TypographyH1, TypographyP } from "@/components/ui/typography";
 import { Users, BarChart3, MessageSquare } from "lucide-react";
 
@@ -105,56 +106,7 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="mt-24 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="grid md:grid-cols-3 gap-8 mb-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 flex items-center justify-center bg-zinc-900 dark:bg-zinc-100 rounded-xl">
-                  <Users className="w-5 h-5 text-zinc-50 dark:text-zinc-900" />
-                </div>
-                <span className="text-lg font-bold">PeopleCore</span>
-              </div>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Connect, collaborate, and stay organized with your team.
-              </p>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold mb-3">Product</h3>
-              <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-                <li><a href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">FAQ</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold mb-3">Company</h3>
-              <ul className="space-y-2 text-sm text-zinc-600 dark:text-zinc-400">
-                <li><a href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Privacy</a></li>
-                <li><a href="#" className="hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">Terms</a></li>
-              </ul>
-            </div>
-          </div>
-          
-          <div className="pt-6 border-t border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">
-              © {new Date().getFullYear()} PeopleCore. All rights reserved.
-            </p>
-            <div className="flex gap-4">
-              <a href="#" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                <MessageSquare className="w-5 h-5" />
-              </a>
-              <a href="#" className="text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors">
-                <Users className="w-5 h-5" />
-              </a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <AppFooter />
     </div>
   );
 }

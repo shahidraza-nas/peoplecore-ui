@@ -25,7 +25,7 @@ export function Header() {
         <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md flex items-center justify-center px-6">
             <div className="w-full max-w-6xl flex items-center justify-between">
                 <button 
-                    onClick={() => router.push("/")}
+                    onClick={() => router.push("/dashboard")}
                     className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
                 >
                     <div className="w-8 h-8 flex items-center justify-center bg-zinc-900 dark:bg-zinc-100 rounded-xl shadow-sm">
