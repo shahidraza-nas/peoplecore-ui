@@ -35,7 +35,6 @@ export function useAuth(): UseAuthReturn {
   const [error, setError] = useState<ApiError | null>(null);
   const router = useRouter();
 
-  // Initialize user from localStorage on mount
   useEffect(() => {
     const initAuth = async () => {
       try {
@@ -44,7 +43,6 @@ export function useAuth(): UseAuthReturn {
           if (storedUser) {
             setUser(storedUser);
           } else {
-            // Fetch user from API if not in localStorage
             await refreshUser();
           }
         }
@@ -66,7 +64,6 @@ export function useAuth(): UseAuthReturn {
     try {
       const response = await api.login(data);
 
-      // Check if 2FA is required
       if ('otp' in response.data && response.data.otp) {
         toast.success(response.message || 'OTP sent to your email');
         return {
@@ -75,7 +72,6 @@ export function useAuth(): UseAuthReturn {
         };
       }
 
-      // Normal login flow
       if ('user' in response.data) {
         setUser(response.data.user);
         toast.success(response.message || 'Login successful');
@@ -100,19 +96,14 @@ export function useAuth(): UseAuthReturn {
     try {
       const response = await api.register(data);
       toast.success(response.message || 'Registration successful. Please login.');
-      // Note: Backend doesn't auto-login after registration
-      // User needs to login separately
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError);
-      
-      // Extract readable error message from validation errors
       let errorMessage = 'Registration failed';
       
       if (apiError.statusCode === 401) {
         errorMessage = 'Registration is currently disabled. Please contact an administrator to create your account.';
       } else if (apiError.error && Array.isArray(apiError.error)) {
-        // Handle validation errors array
         const firstError = apiError.error[0];
         if (firstError && typeof firstError === 'object' && 'constraints' in firstError) {
           const constraints = firstError.constraints as Record<string, string>;
@@ -142,7 +133,6 @@ export function useAuth(): UseAuthReturn {
       const apiError = err as ApiError;
       setError(apiError);
       toast.error(apiError.message || 'Logout failed');
-      // Still clear user on client side even if API call fails
       setUser(null);
       router.push('/login');
     } finally {
@@ -191,15 +181,11 @@ export function useAuth(): UseAuthReturn {
 
     try {
       const response = await api.verifyOtp(data);
-
-      // Check if this OTP verification leads to login
       if ('user' in response.data) {
         setUser(response.data.user);
         toast.success(response.message || 'Login successful');
         return {};
       }
-
-      // Otherwise, it's for password reset
       if ('session_id' in response.data) {
         toast.success(response.message || 'OTP verified');
         return {
@@ -249,7 +235,6 @@ export function useAuth(): UseAuthReturn {
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError);
-      // If unauthorized, clear auth state
       if (apiError.statusCode === 401 || apiError.statusCode === 403) {
         setUser(null);
         if (typeof window !== 'undefined') {
