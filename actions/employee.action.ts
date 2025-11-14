@@ -30,7 +30,6 @@ export async function listEmployees(filter: EmployeeFilter): Promise<{
     const { sort, search, limit, offset, role, active } = filter;
 
     const query: any = {
-      sort: sort ? [[sort.field, sort.order]] : [["created_at", "desc"]],
       search: search || "",
       limit: limit || 10,
       offset: offset || 0,
@@ -45,20 +44,25 @@ export async function listEmployees(filter: EmployeeFilter): Promise<{
       query.data.active = active;
     }
 
-    const { data, error, count } = await API.GetAll<EmployeeListResponse>("user", query);
+    const response = await API.GetAll<any>("user", query);
 
-    if (error) return { success: false, error };
+    if (response.error) {
+      return { success: false, error: response.error };
+    }
+
+    // API returns: { data: { users: [], count: X } }
+    const users = response.data?.users || [];
+    const totalCount = response.data?.count || 0;
 
     return { 
       success: true, 
       data: { 
-        users: data?.users || [], 
-        count: count || 0 
+        users: users, 
+        count: totalCount 
       } 
     };
   } catch (error) {
-    console.error("Error fetching employees:", error);
-    return { success: false, error: "Failed to fetch employees" };
+    return { success: false, error: error instanceof Error ? error.message : "Failed to fetch employees" };
   }
 }
 

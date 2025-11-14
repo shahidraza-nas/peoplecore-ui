@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import {
   Select,
   SelectContent,
@@ -26,7 +26,7 @@ export default function EmployeeFilter({ disabled }: EmployeeFilterProps) {
   const [role, setRole] = useState(searchParams.get("role") || "all");
   const [status, setStatus] = useState(searchParams.get("active") || "all");
 
-  const handleSearch = () => {
+  const applyFilters = () => {
     const params = new URLSearchParams(searchParams);
     
     if (search) {
@@ -54,29 +54,33 @@ export default function EmployeeFilter({ disabled }: EmployeeFilterProps) {
     });
   };
 
+  // Debounced search effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      applyFilters();
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [search, role, status]);
+
   const handleReset = () => {
     setSearch("");
     setRole("all");
     setStatus("all");
-    
-    startTransition(() => {
-      router.push("/employees");
-    });
   };
 
   const hasFilters = search || role !== "all" || status !== "all";
 
   return (
-    <div className="bg-card rounded-lg border p-4 space-y-4">
-      <div className="grid gap-4 md:grid-cols-4">
+    <div className="bg-card rounded-lg border p-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center">
         {/* Search */}
-        <div className="md:col-span-2 relative">
+        <div className="relative flex-1 md:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by name, email, or phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !disabled && handleSearch()}
             className="pl-9"
             disabled={disabled || isPending}
           />
@@ -88,14 +92,12 @@ export default function EmployeeFilter({ disabled }: EmployeeFilterProps) {
           onValueChange={setRole}
           disabled={disabled || isPending}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="All Roles" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Roles</SelectItem>
             <SelectItem value="Admin">Admin</SelectItem>
-            <SelectItem value="Manager">Manager</SelectItem>
-            <SelectItem value="Employee">Employee</SelectItem>
             <SelectItem value="User">User</SelectItem>
           </SelectContent>
         </Select>
@@ -106,7 +108,7 @@ export default function EmployeeFilter({ disabled }: EmployeeFilterProps) {
           onValueChange={setStatus}
           disabled={disabled || isPending}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="All Status" />
           </SelectTrigger>
           <SelectContent>
@@ -115,25 +117,17 @@ export default function EmployeeFilter({ disabled }: EmployeeFilterProps) {
             <SelectItem value="false">Inactive</SelectItem>
           </SelectContent>
         </Select>
-      </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-2">
-        <Button
-          onClick={handleSearch}
-          disabled={disabled || isPending}
-          className="flex-1 sm:flex-initial"
-        >
-          {isPending ? "Searching..." : "Search"}
-        </Button>
+        {/* Reset Button */}
         {hasFilters && (
           <Button
             variant="outline"
             onClick={handleReset}
             disabled={disabled || isPending}
+            size="icon"
+            title="Reset filters"
           >
-            <X className="h-4 w-4 mr-2" />
-            Reset
+            <X className="h-4 w-4" />
           </Button>
         )}
       </div>

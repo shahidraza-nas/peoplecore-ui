@@ -28,12 +28,11 @@ export function useEmployees(): UseEmployeesReturn {
     try {
       const response = await API.GetAll<{ users: User[]; count: number }>('user');
       setEmployees(response.data?.users || []);
-      setTotalCount(response.count || 0);
+      setTotalCount(response.data?.count || 0);
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError);
       toast.error(apiError.message || 'Failed to fetch employees');
-      // Set empty array on error to prevent undefined issues
       setEmployees([]);
       setTotalCount(0);
     } finally {
@@ -48,16 +47,12 @@ export function useEmployees(): UseEmployeesReturn {
     try {
       const response = await API.Create<CreateEmployeeData, { user: User }>('user', data);
       toast.success(response.message || 'Employee created successfully');
-      
-      // Refresh the list
+
       await fetchEmployees();
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError);
-      
-      // Extract readable error message from validation errors
       let errorMessage = 'Failed to create employee';
-      
       if (apiError.error && Array.isArray(apiError.error)) {
         const firstError = apiError.error[0];
         if (firstError && typeof firstError === 'object' && 'constraints' in firstError) {
@@ -67,7 +62,7 @@ export function useEmployees(): UseEmployeesReturn {
       } else if (apiError.message && typeof apiError.message === 'string') {
         errorMessage = apiError.message;
       }
-      
+
       toast.error(errorMessage);
       throw err;
     } finally {
@@ -82,8 +77,7 @@ export function useEmployees(): UseEmployeesReturn {
     try {
       const response = await API.UpdateById<Partial<User>, { user: User }>('user', id, data);
       toast.success(response.message || 'Employee updated successfully');
-      
-      // Update local state
+
       setEmployees(prev => prev.map(emp => emp.id === id ? (response.data?.user || emp) : emp));
     } catch (err) {
       const apiError = err as ApiError;
@@ -102,8 +96,6 @@ export function useEmployees(): UseEmployeesReturn {
     try {
       await API.DeleteById('user', id);
       toast.success('Employee deleted successfully');
-      
-      // Remove from local state
       setEmployees(prev => prev.filter(emp => emp.id !== id));
       setTotalCount(prev => prev - 1);
     } catch (err) {

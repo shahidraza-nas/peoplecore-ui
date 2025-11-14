@@ -1,10 +1,17 @@
 import { LoginForm } from "@/components/auth/login-form";
+import Link from "next/link";
 
 export default function LoginPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-50 via-zinc-100 to-zinc-200 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900 p-4">
             <div className="w-full max-w-md">
                 <LoginForm />
+                <div className="mt-4 text-center text-sm">
+                    <span className="text-muted-foreground">Don't have an account? </span>
+                    <Link href="/register" className="text-primary hover:underline font-medium">
+                        Sign up
+                    </Link>
+                </div>
             </div>
         </div>
     );

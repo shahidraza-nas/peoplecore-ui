@@ -42,7 +42,7 @@ export default async function EmployeesPage({ searchParams }: SearchParams) {
     sortArr = [...populates, direction];
   }
 
-  const { data } = await listEmployees({
+  const result = await listEmployees({
     limit,
     offset: offsetLimit,
     sort:
@@ -57,29 +57,35 @@ export default async function EmployeesPage({ searchParams }: SearchParams) {
   let employees: User[] = [];
   let totalRows = 0;
 
-  if (!!data) {
-    const { users, count } = data;
-    employees = users;
-    totalRows = count;
+  if (result.success && result.data) {
+    employees = result.data.users || [];
+    totalRows = result.data.count || 0;
   }
 
   return (
-    <>
-      <div className="bg-muted/50 min-h-[100vh] flex-1 rounded-xl md:min-h-[87vh] mt-3">
-        <div className="flex items-center justify-between px-8 pt-8">
-          <h1 className="text-xl font-semibold">Employees</h1>
-          <Link href="/employees/create">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Employee
-            </Button>
-          </Link>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold tracking-tight">Employees</h1>
+          <p className="text-zinc-600 dark:text-zinc-400">
+            Manage your team members and their roles
+          </p>
         </div>
-        <div className="m-4">
-          <EmployeeFilter />
-        </div>
-        <div className="rounded-xl border bg-card p-8 mt-4">
-          <Table>
+        <Link href="/employees/create">
+          <Button size="lg" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Employee
+          </Button>
+        </Link>
+      </div>
+
+      {/* Filter Section */}
+      <EmployeeFilter />
+
+      {/* Table Section */}
+      <div className="rounded-xl border bg-card p-6">
+        <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>S.No</TableHead>
@@ -100,14 +106,14 @@ export default async function EmployeesPage({ searchParams }: SearchParams) {
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={employee.avatar || undefined} />
+                          <AvatarImage src={employee.avatar || (employee as any).profile_image || undefined} />
                           <AvatarFallback>
-                            {employee.first_name?.[0]}
-                            {employee.last_name?.[0]}
+                            {(employee.first_name || (employee as any).full_name || 'U')?.[0]}
+                            {(employee.last_name || '')?.[0]}
                           </AvatarFallback>
                         </Avatar>
                         <span>
-                          {employee.first_name} {employee.last_name}
+                          {(employee as any).full_name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || 'Unknown'}
                         </span>
                       </div>
                     </TableCell>
@@ -146,14 +152,13 @@ export default async function EmployeesPage({ searchParams }: SearchParams) {
                 ))}
             </TableBody>
           </Table>
-          {(!employees || employees.length === 0) && (
-            <NoData
-              title="No Employees Found"
-              description="No employees match your search criteria"
-            />
-          )}
-        </div>
+        {(!employees || employees.length === 0) && (
+          <NoData
+            title="No Employees Found"
+            description="No employees match your search criteria"
+          />
+        )}
       </div>
-    </>
+    </div>
   );
 }
