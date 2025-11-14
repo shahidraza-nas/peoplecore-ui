@@ -1,193 +1,242 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/use-auth";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
-import Link from "next/link";
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { CheckCircle, Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { login, verify2Fa } from "@/actions/auth.action";
+import { LoginSchema } from "@/schemas";
 
-export default function LoginForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+type LoginFormProps = React.ComponentProps<"div"> & {
+  onForgotPassword?: () => void;
+};
+
+export function LoginForm({
+  className,
+  onForgotPassword,
+  ...props
+}: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
-  const [otp, setOtp] = useState("");
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isLoading, setLoading] = useState(false);
   const [requiresOtp, setRequiresOtp] = useState(false);
-  
-  const { login, verifyOtp, loading } = useAuth();
+  const [sessionId, setSessionId] = useState<string>("");
+  const [otpCode, setOtpCode] = useState("");
+
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<z.infer<typeof LoginSchema>>({
+    resolver: zodResolver(LoginSchema),
+  });
+
+  const onLogin = async (values: z.infer<typeof LoginSchema>) => {
     try {
-      const result = await login({
-        username: email,
-        password,
-        info: {
-          device: navigator.userAgent,
-          timestamp: new Date().toISOString(),
-        },
+      setLoading(true);
+      const loadingToast = toast.loading("Logging in...");
+      const { error, data } = await login({
+        email: values.email,
+        password: values.password,
       });
-      if (result.requiresOtp && result.sessionId) {
-        setRequiresOtp(true);
-        setSessionId(result.sessionId);
+      toast.remove(loadingToast);
+      setLoading(false);
+      
+      if (error) {
+        if (error.startsWith("2FARequired:")) {
+          const extractedSessionId = error.split(":")[1];
+          setSessionId(extractedSessionId);
+          setRequiresOtp(true);
+          toast.success("OTP sent to your email");
+          return;
+        } else {
+          toast.error(error);
+        }
       } else {
         router.push("/dashboard");
+        toast.success("Logged in successfully", {
+          icon: <CheckCircle className="text-green-500" />,
+        });
       }
     } catch (error) {
+      toast.error("Something went wrong. Please try again.");
+      setLoading(false);
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const onVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sessionId) return;
+    if (!sessionId || otpCode.length !== 4) return;
+
     try {
-      await verifyOtp({
-        session_id: sessionId,
-        otp,
-      });
-      router.push("/dashboard");
+      setLoading(true);
+      const loadingToast = toast.loading("Verifying OTP...");
+      const { error } = await verify2Fa(otpCode, sessionId);
+      toast.remove(loadingToast);
+      setLoading(false);
+
+      if (error) {
+        toast.error(error);
+      } else {
+        router.push("/dashboard");
+        toast.success("Logged in successfully", {
+          icon: <CheckCircle className="text-green-500" />,
+        });
+      }
     } catch (error) {
+      toast.error("Something went wrong. Please try again.");
+      setLoading(false);
     }
   };
 
   if (requiresOtp) {
     return (
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Two-Factor Authentication</CardTitle>
-          <CardDescription>
-            Enter the OTP sent to your email address
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleVerifyOtp}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="otp">One-Time Password</Label>
-              <Input
-                id="otp"
-                type="text"
-                placeholder="Enter 6-digit OTP"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                maxLength={6}
-                required
-                disabled={loading}
-              />
-            </div>
+      <div className={cn("flex flex-col gap-6", className)} {...props}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Two-Factor Authentication</CardTitle>
+            <CardDescription>
+              Enter the OTP sent to your email address
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={onVerifyOtp}>
+              <div className="flex flex-col gap-6">
+                <div className="grid gap-2">
+                  <Label htmlFor="otp">One-Time Password</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    placeholder="Enter 4-digit OTP"
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value)}
+                    maxLength={4}
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <Button
+                    type="submit"
+                    disabled={isLoading || otpCode.length !== 4}
+                    className="w-full cursor-pointer"
+                  >
+                    Verify OTP
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => {
+                      setRequiresOtp(false);
+                      setSessionId("");
+                      setOtpCode("");
+                    }}
+                    disabled={isLoading}
+                  >
+                    Back to Login
+                  </Button>
+                </div>
+              </div>
+            </form>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-4 pt-6">
-            <Button type="submit" className="w-full" disabled={loading || otp.length !== 6}>
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Verifying...
-                </>
-              ) : (
-                "Verify OTP"
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full"
-              onClick={() => {
-                setRequiresOtp(false);
-                setSessionId(null);
-                setOtp("");
-              }}
-              disabled={loading}
-            >
-              Back to Login
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>Welcome Back</CardTitle>
-        <CardDescription>
-          Sign in to your account to continue
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleLogin}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="your.email@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <Link
-                href="/forgot-password"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={loading}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
+    <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <Card>
+        <CardHeader>
+          <CardTitle>Login to your account</CardTitle>
+          <CardDescription>Enter your email below to login</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit(onLogin)}>
+            <div className="flex flex-col gap-6">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  {...register("email")}
+                />
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email.message}</p>
                 )}
-              </Button>
+              </div>
+
+              <div className="grid gap-2">
+                <div className="flex items-center">
+                  <Label htmlFor="password">Password</Label>
+                  <a
+                    href="#"
+                    className="ml-auto text-sm underline-offset-4 hover:underline"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onForgotPassword?.();
+                    }}
+                  >
+                    Forgot your password?
+                  </a>
+                </div>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    placeholder="Password"
+                    type={showPassword ? "text" : "password"}
+                    {...register("password")}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 cursor-pointer"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-sm text-red-500">
+                    {errors.password.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting || isLoading}
+                  className="w-full cursor-pointer"
+                >
+                  Login
+                </Button>
+              </div>
             </div>
-          </div>
+          </form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4 pt-6">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              "Sign In"
-            )}
-          </Button>
-          <p className="text-sm text-center text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-foreground font-medium hover:underline">
-              Sign up
-            </Link>
-          </p>
-        </CardFooter>
-      </form>
-    </Card>
+      </Card>
+    </div>
   );
 }

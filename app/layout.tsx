@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
+import { Toaster as SonnerToast } from "sonner";
+import { Providers } from "@/providers/Providers";
+import { auth } from "@/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,18 +21,23 @@ export const metadata: Metadata = {
   description: "Core People Hub, Chat, and more",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await auth();
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
-        <Toaster position="top-center" />
+        <Providers session={session}>
+          {children}
+          <Toaster position="top-center" />
+          <SonnerToast position="top-center" />
+        </Providers>
       </body>
     </html>
   );

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { MessageSquare, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 const navItems = [
     { name: "Chat", icon: MessageSquare, path: "/chat" },
@@ -15,10 +16,10 @@ const navItems = [
 export function Sidebar() {
     const router = useRouter();
     const pathname = usePathname();
+    const { logout } = useAuth();
 
-    const handleLogout = () => {
-        localStorage.removeItem("token");
-        router.push("/login");
+    const handleLogout = async () => {
+        await logout();
     };
 
     return (

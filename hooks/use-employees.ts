@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import api from '@/lib/api';
+import { API } from '@/lib/fetch';
 import { User, CreateEmployeeData, ApiError } from '@/lib/types';
 import toast from 'react-hot-toast';
 
@@ -26,9 +26,9 @@ export function useEmployees(): UseEmployeesReturn {
     setError(null);
 
     try {
-      const response = await api.getUsers(query);
-      setEmployees(response.data.users || []);
-      setTotalCount(response.data.count || 0);
+      const response = await API.GetAll<{ users: User[]; count: number }>('user');
+      setEmployees(response.data?.users || []);
+      setTotalCount(response.count || 0);
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError);
@@ -46,7 +46,7 @@ export function useEmployees(): UseEmployeesReturn {
     setError(null);
 
     try {
-      const response = await api.createEmployee(data);
+      const response = await API.Create<CreateEmployeeData, { user: User }>('user', data);
       toast.success(response.message || 'Employee created successfully');
       
       // Refresh the list
@@ -80,11 +80,11 @@ export function useEmployees(): UseEmployeesReturn {
     setError(null);
 
     try {
-      const response = await api.updateUser(id, data);
+      const response = await API.UpdateById<Partial<User>, { user: User }>('user', id, data);
       toast.success(response.message || 'Employee updated successfully');
       
       // Update local state
-      setEmployees(prev => prev.map(emp => emp.id === id ? response.data.user : emp));
+      setEmployees(prev => prev.map(emp => emp.id === id ? (response.data?.user || emp) : emp));
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError);
@@ -100,7 +100,7 @@ export function useEmployees(): UseEmployeesReturn {
     setError(null);
 
     try {
-      await api.deleteUser(id);
+      await API.DeleteById('user', id);
       toast.success('Employee deleted successfully');
       
       // Remove from local state
@@ -121,8 +121,8 @@ export function useEmployees(): UseEmployeesReturn {
     setError(null);
 
     try {
-      const response = await api.getUserById(id);
-      return response.data.user;
+      const response = await API.GetById<{ user: User }>('user', id);
+      return response.data?.user || null;
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError);

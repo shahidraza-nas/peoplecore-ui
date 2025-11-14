@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { API } from '@/lib/fetch';
 import { User, ApiError } from '@/lib/types';
 import toast from 'react-hot-toast';
 
@@ -28,8 +28,8 @@ export function useProfile() {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.getProfile();
-      setUser(response.data.user);
+      const response = await API.Me<{ user: User }>();
+      setUser(response.data?.user || null);
     } catch (err: any) {
       const apiError: ApiError = {
         message: err.response?.data?.message || 'Failed to fetch profile',
@@ -47,17 +47,11 @@ export function useProfile() {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.updateProfile(data);
-      setUser(response.data.user);
-      
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        localStorage.setItem('user', JSON.stringify({ ...parsedUser, ...response.data.user }));
-      }
+      const response = await API.UpdateMe<{ user: User }>(data);
+      setUser(response.data?.user || null);
       
       toast.success('Profile updated successfully');
-      return response.data.user;
+      return response.data?.user || null;
     } catch (err: any) {
       const apiError: ApiError = {
         message: err.response?.data?.message || 'Failed to update profile',
@@ -86,7 +80,7 @@ export function useProfile() {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.changePassword(data);
+      const response = await API.Put<ChangePasswordData, null>('user/password', data);
       toast.success('Password changed successfully');
       return response;
     } catch (err: any) {
@@ -117,17 +111,13 @@ export function useProfile() {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.uploadAvatar(file);
-      setUser(response.data.user);
-      
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        localStorage.setItem('user', JSON.stringify({ ...parsedUser, ...response.data.user }));
-      }
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const response = await API.Patch('user/me/avatar', formData, undefined, { isMultipart: true });
+      setUser(response.data?.user || null);
       
       toast.success('Avatar updated successfully');
-      return response.data.user;
+      return response.data?.user || null;
     } catch (err: any) {
       const apiError: ApiError = {
         message: err.response?.data?.message || 'Failed to upload avatar',

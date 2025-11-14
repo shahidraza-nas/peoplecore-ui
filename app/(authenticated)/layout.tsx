@@ -3,7 +3,7 @@
 import { Header } from "@/components/layout/header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 
-export default function DashboardLayout({
+export default function AuthenticatedLayout({
     children,
 }: {
     children: React.ReactNode;
