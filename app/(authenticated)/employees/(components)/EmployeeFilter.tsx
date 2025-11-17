@@ -74,7 +74,7 @@ export default function EmployeeFilter({ disabled }: EmployeeFilterProps) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, email, or phone..."
+            placeholder="Search by name, email, or phone"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !disabled && !isPending && handleSearch()}
@@ -86,7 +86,7 @@ export default function EmployeeFilter({ disabled }: EmployeeFilterProps) {
         {/* Filters and Actions */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {/* Role Filter */}
-          <Select
+          {/* <Select
             value={role}
             onValueChange={setRole}
             disabled={disabled || isPending}
@@ -99,10 +99,10 @@ export default function EmployeeFilter({ disabled }: EmployeeFilterProps) {
               <SelectItem value={Role.Admin}>{Role.Admin}</SelectItem>
               <SelectItem value={Role.User}>{Role.User}</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
 
           {/* Status Filter */}
-          <Select
+          {/* <Select
             value={status}
             onValueChange={setStatus}
             disabled={disabled || isPending}
@@ -115,7 +115,7 @@ export default function EmployeeFilter({ disabled }: EmployeeFilterProps) {
               <SelectItem value="true">Active</SelectItem>
               <SelectItem value="false">Inactive</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
 
           {/* Action Buttons */}
           <div className="flex gap-2">

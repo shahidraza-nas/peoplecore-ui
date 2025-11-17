@@ -80,7 +80,9 @@ export function ChatWindow({
             onTyping(otherUser.id, false, activeChat.uid);
         }
         await onSendMessage(otherUser.uid, text);
-        inputRef.current?.focus();
+        setTimeout(() => {
+            inputRef.current?.focus();
+        }, 0);
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {

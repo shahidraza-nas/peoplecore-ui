@@ -65,10 +65,7 @@ export function SocketEvents({ socket }: { socket: Socket }) {
 
         socket.on("disconnect", (reason, details) => {
             console.log("🔌 Socket disconnected:", reason, details);
-            
-            // Handle forced disconnection
             if (reason === "io server disconnect") {
-                // Server forcefully closed connection, try to reconnect
                 console.log("Server disconnected socket, attempting to reconnect...");
             }
         });
@@ -80,8 +77,6 @@ export function SocketEvents({ socket }: { socket: Socket }) {
                 errorMessage.includes('invalid token') ||
                 errorMessage.includes('unauthorized')) {
                 console.error("Authentication error: Session expired");
-                
-                // Disconnect socket to prevent reconnection attempts
                 socket.disconnect();
 
                 router.push('/login?expired=true');
