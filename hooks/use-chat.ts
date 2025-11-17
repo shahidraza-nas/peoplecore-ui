@@ -82,14 +82,21 @@ export const useChat = (user: User | null): UseChatReturn => {
                     return [...prev, newMessage];
                 });
             }
-            // Update chat with new message and move to top
             setChats((prevChats) => {
-                const updatedChats = prevChats.map((chat) =>
-                    chat.id === newMessage.chatId
-                        ? { ...chat, messages: [newMessage], updated_at: newMessage.created_at }
-                        : chat
-                );
-                // Sort by most recent message/update
+                const updatedChats = prevChats.map((chat) => {
+                    if (chat.id === newMessage.chatId) {
+                        const isMessageForMe = newMessage.toUserId === user?.id;
+                        const isInActiveChat = activeChat && activeChat.id === newMessage.chatId;
+                        const incrementUnread = isMessageForMe && !isInActiveChat && !newMessage.isRead;
+                        return {
+                            ...chat,
+                            messages: [newMessage],
+                            updated_at: newMessage.created_at,
+                            unreadCount: incrementUnread ? (chat.unreadCount || 0) + 1 : chat.unreadCount,
+                        };
+                    }
+                    return chat;
+                });
                 return updatedChats.sort((a, b) => {
                     const aTime = a.messages?.[0]?.created_at || a.updated_at || a.created_at;
                     const bTime = b.messages?.[0]?.created_at || b.updated_at || b.created_at;
@@ -184,6 +191,35 @@ export const useChat = (user: User | null): UseChatReturn => {
         };
     }, []);
 
+    useEffect(() => {
+        const handleMessagesRead = (data: { chatUid: string; readBy: number }) => {
+            console.log('Messages marked as read:', data);
+            if (activeChat && data.chatUid === activeChat.uid) {
+                setMessages((prev) =>
+                    prev.map((msg) => ({ ...msg, isRead: true }))
+                );
+            }
+            setChats((prev) =>
+                prev.map((chat) =>
+                    chat.uid === data.chatUid
+                        ? {
+                              ...chat,
+                              messages: chat.messages?.map((msg) => ({ ...msg, isRead: true })),
+                              unreadCount: 0,
+                          }
+                        : chat
+                )
+            );
+        };
+
+        const { onMessagesRead, offMessagesRead } = require('@/lib/socket');
+        onMessagesRead(handleMessagesRead);
+
+        return () => {
+            offMessagesRead(handleMessagesRead);
+        };
+    }, [activeChat]);
+
     const loadChats = useCallback(async () => {
         if (!user || isLoadingChats.current) return;
 
@@ -195,9 +231,12 @@ export const useChat = (user: User | null): UseChatReturn => {
                 toast.error('Failed to load chats');
                 return;
             }
-            // Server action returns { success: true, data: { chats: [...], count: X } }
             const loadedChats = response.data?.chats || [];
-            // Sort by most recent message/update
+            console.log('Loaded chats with unread counts:', loadedChats.map(c => ({
+                uid: c.uid,
+                unreadCount: c.unreadCount,
+                messages: c.messages?.length
+            })));
             const sortedChats = loadedChats.sort((a, b) => {
                 const aTime = a.messages?.[0]?.created_at || a.updated_at || a.created_at;
                 const bTime = b.messages?.[0]?.created_at || b.updated_at || b.created_at;
@@ -225,7 +264,6 @@ export const useChat = (user: User | null): UseChatReturn => {
                 return;
             }
 
-            // Server action returns { success: true, data: { messages: [...], count: X } }
             const newMessages = response.data?.messages || [];
             setHasMore(newMessages.length === 50);
 
@@ -243,28 +281,24 @@ export const useChat = (user: User | null): UseChatReturn => {
         }
     }, [activeChat]);
 
-    // Initial load - only once when user is available
     useEffect(() => {
         if (user && !chatsLoaded.current) {
             loadChats();
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user?.id]); // Only depend on user.id to prevent re-running
+    }, [user?.id]);
 
-    // Load messages when active chat changes
     useEffect(() => {
         if (activeChat) {
-            isLoadingMessages.current = false; // Reset loading flag for new chat
+            isLoadingMessages.current = false;
             loadMessages(0);
             setMessageOffset(0);
             setHasMore(true);
+            markAsRead(activeChat.uid);
         } else {
             setMessages([]);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [activeChat?.uid]); // Only depend on chat UID to prevent re-running
+    }, [activeChat?.uid]);
 
-    // Send message
     const sendMessage = useCallback(async (toUserUid: string, message: string) => {
         if (!user || !message.trim()) return;
 
@@ -316,9 +350,13 @@ export const useChat = (user: User | null): UseChatReturn => {
     const markAsRead = useCallback(async (chatUid: string) => {
         try {
             await markChatAsRead(chatUid);
-            // Update local state
             setMessages((prev) =>
                 prev.map((msg) => (msg.chatId === activeChat?.id ? { ...msg, isRead: true } : msg))
+            );
+            setChats((prev) =>
+                prev.map((chat) =>
+                    chat.uid === chatUid ? { ...chat, unreadCount: 0 } : chat
+                )
             );
         } catch (error) {
             console.error('Failed to mark as read:', error);

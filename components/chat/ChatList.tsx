@@ -116,10 +116,6 @@ export function ChatList({ chats, activeChat, currentUser, loading, onlineUsers,
                         <p className="text-sm text-muted-foreground italic">No messages yet</p>
                       )}
                     </div>
-
-                    {lastMessage && !lastMessage.isRead && lastMessage.toUserId === currentUser?.id && (
-                      <div className="mt-1 h-2 w-2 rounded-full bg-primary"></div>
-                    )}
                   </div>
                 </button>
               );

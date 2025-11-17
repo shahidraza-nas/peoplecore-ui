@@ -153,3 +153,15 @@ export const offOnlineUsersList = (callback?: (data: any) => void) => {
         socket?.off('onlineUsers.list');
     }
 };
+
+export const onMessagesRead = (callback: (data: { chatUid: string; readBy: number }) => void) => {
+    socket?.on('messages.read', callback);
+};
+
+export const offMessagesRead = (callback?: (data: any) => void) => {
+    if (callback) {
+        socket?.off('messages.read', callback);
+    } else {
+        socket?.off('messages.read');
+    }
+};

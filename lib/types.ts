@@ -155,7 +155,7 @@ export interface CreateEmployeeData {
     send_email?: boolean;
 }
 
-// Legacy types - will be removed
+// will be removed
 export interface Message {
     id: string;
     senderId: string;

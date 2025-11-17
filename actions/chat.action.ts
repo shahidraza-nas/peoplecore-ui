@@ -24,6 +24,16 @@ export interface ChatFilter {
 }
 
 /**
+ * Calculate unread count for each chat
+ */
+function calculateUnreadCount(chat: Chat, currentUserId: number): number {
+    if (!chat.messages || chat.messages.length === 0) return 0;
+    return chat.messages.filter(
+        (msg) => !msg.isRead && msg.toUserId === currentUserId
+    ).length;
+}
+
+/**
  * Get all chats for the current user
  */
 export async function getMyChats(filter?: ChatFilter): Promise<{
