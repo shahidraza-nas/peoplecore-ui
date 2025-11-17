@@ -56,10 +56,10 @@ export const useChat = (user: User | null): UseChatReturn => {
             return;
         }
 
-        console.log('🔌 Connecting to chat socket with token');
+        console.log('Connecting to chat socket');
         try {
             const socket = connectSocket(token);
-            console.log('Chat socket initialized successfully');
+            console.log('Socket initialized, connected:', socket?.connected);
         } catch (error) {
             console.error('Failed to initialize chat socket:', error);
             toast.error('Failed to connect to chat service');
@@ -107,19 +107,13 @@ export const useChat = (user: User | null): UseChatReturn => {
 
     useEffect(() => {
         const handleTyping = (data: { userId: number; chatUid: string; isTyping: boolean }) => {
-            console.log('📬 Received typing event:', {
-                userId: data.userId,
-                chatUid: data.chatUid,
-                isTyping: data.isTyping,
-                activeChat: activeChat?.uid,
-                matches: activeChat && data.chatUid === activeChat.uid
-            });
+            console.log('Received typing event:', data, 'activeChat:', activeChat?.uid, 'matches:', activeChat && data.chatUid === activeChat.uid);
             if (activeChat && data.chatUid === activeChat.uid) {
                 setTypingUsers((prev) => {
                     const newSet = new Set(prev);
                     if (data.isTyping) {
                         newSet.add(data.userId);
-                        console.log('✅ Added user to typing set:', data.userId, 'Total typing:', newSet.size);
+                        console.log('Added user to typing set:', data.userId, 'Total:', newSet.size);
                         if (typingTimeoutRef.current[data.userId]) {
                             clearTimeout(typingTimeoutRef.current[data.userId]);
                         }
@@ -127,13 +121,13 @@ export const useChat = (user: User | null): UseChatReturn => {
                             setTypingUsers((s) => {
                                 const updated = new Set(s);
                                 updated.delete(data.userId);
-                                console.log('⏰ Auto-removed user from typing (timeout):', data.userId);
+                                console.log('Auto-removed typing (timeout):', data.userId);
                                 return updated;
                             });
                         }, 3000);
                     } else {
                         newSet.delete(data.userId);
-                        console.log('🛑 Removed user from typing set:', data.userId);
+                        console.log('Removed from typing set:', data.userId);
                         if (typingTimeoutRef.current[data.userId]) {
                             clearTimeout(typingTimeoutRef.current[data.userId]);
                         }
@@ -151,24 +145,28 @@ export const useChat = (user: User | null): UseChatReturn => {
         };
     }, [activeChat]);
 
-    // Handle user online/offline status
     useEffect(() => {
         const handleUserOnline = (data: { userId: number }) => {
+            console.log('User online event:', data);
             setOnlineUsers((prev) => {
                 const newSet = new Set(prev);
                 newSet.add(data.userId);
+                console.log('Online users:', Array.from(newSet));
                 return newSet;
             });
         };
 
         const handleUserOffline = (data: { userId: number }) => {
+            console.log('User offline event:', data);
             setOnlineUsers((prev) => {
                 const newSet = new Set(prev);
                 newSet.delete(data.userId);
+                console.log('Online users:', Array.from(newSet));
                 return newSet;
             });
         };
 
+        console.log('Setting up online/offline listeners');
         onUserOnline(handleUserOnline);
         onUserOffline(handleUserOffline);
 

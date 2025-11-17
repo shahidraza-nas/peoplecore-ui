@@ -156,6 +156,10 @@ export function ChatWindow({
                         )}
                     </p>
                 </div>
+                <div className="text-xs text-muted-foreground">
+                    <div>Online: {onlineUsers.size} | Typing: {typingUsers.size}</div>
+                    <div>User ID: {otherUser?.id}</div>
+                </div>
             </div>
 
             <ScrollArea ref={scrollAreaRef} className="flex-1 p-6 min-h-0 bg-zinc-50/50 dark:bg-zinc-900/50">
