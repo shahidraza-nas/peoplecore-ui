@@ -36,7 +36,6 @@ export const connectSocket = (token: string): Socket => {
         //     data: error.data,
         // });
 
-        // Check if it's an authentication error
         const errorMsg = error.message?.toLowerCase() || '';
         if (
             errorMsg.includes('jwt expired') ||
@@ -77,6 +76,7 @@ export const emitMessage = (data: { toUserUid: string; message: string }) => {
 };
 
 export const emitTyping = (data: { toUserId: number; isTyping: boolean; chatUid: string }) => {
+    console.log('Emitting typing event:', data, 'Socket connected:', socket?.connected);
     socket?.emit('user.typing', data);
 };
 
@@ -86,7 +86,24 @@ export const onMessage = (callback: (data: any) => void) => {
 };
 
 export const onTyping = (callback: (data: any) => void) => {
-    socket?.on('user.typing', callback);
+    socket?.on('user.typing', (data) => {
+        console.log('Socket received typing event:', data);
+        callback(data);
+    });
+};
+
+export const onUserOnline = (callback: (data: { userId: number }) => void) => {
+    socket?.on('user.online', (data) => {
+        console.log('User came online:', data);
+        callback(data);
+    });
+};
+
+export const onUserOffline = (callback: (data: { userId: number }) => void) => {
+    socket?.on('user.offline', (data) => {
+        console.log('User went offline:', data);
+        callback(data);
+    });
 };
 
 export const offMessage = (callback?: (data: any) => void) => {
@@ -102,5 +119,21 @@ export const offTyping = (callback?: (data: any) => void) => {
         socket?.off('user.typing', callback);
     } else {
         socket?.off('user.typing');
+    }
+};
+
+export const offUserOnline = (callback?: (data: any) => void) => {
+    if (callback) {
+        socket?.off('user.online', callback);
+    } else {
+        socket?.off('user.online');
+    }
+};
+
+export const offUserOffline = (callback?: (data: any) => void) => {
+    if (callback) {
+        socket?.off('user.offline', callback);
+    } else {
+        socket?.off('user.offline');
     }
 };

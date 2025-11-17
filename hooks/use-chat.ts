@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { connectSocket, disconnectSocket, onMessage, offMessage, onTyping, offTyping, emitMessage, emitTyping, getSocket } from '@/lib/socket';
+import { connectSocket, disconnectSocket, onMessage, offMessage, onTyping, offTyping, onUserOnline, offUserOnline, onUserOffline, offUserOffline, emitMessage, emitTyping, getSocket } from '@/lib/socket';
 import {
     getMyChats,
     getChatMessages,
@@ -18,6 +18,7 @@ export interface UseChatReturn {
     loading: boolean;
     sending: boolean;
     typingUsers: Set<number>;
+    onlineUsers: Set<number>;
     setActiveChat: (chat: Chat | null) => void;
     sendMessage: (toUserUid: string, message: string) => Promise<void>;
     loadMoreMessages: () => Promise<void>;
@@ -34,6 +35,7 @@ export const useChat = (user: User | null): UseChatReturn => {
     const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [typingUsers, setTypingUsers] = useState<Set<number>>(new Set());
+    const [onlineUsers, setOnlineUsers] = useState<Set<number>>(new Set());
     const [messageOffset, setMessageOffset] = useState(0);
     const [hasMore, setHasMore] = useState(true);
     const typingTimeoutRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
@@ -105,11 +107,19 @@ export const useChat = (user: User | null): UseChatReturn => {
 
     useEffect(() => {
         const handleTyping = (data: { userId: number; chatUid: string; isTyping: boolean }) => {
+            console.log('📬 Received typing event:', {
+                userId: data.userId,
+                chatUid: data.chatUid,
+                isTyping: data.isTyping,
+                activeChat: activeChat?.uid,
+                matches: activeChat && data.chatUid === activeChat.uid
+            });
             if (activeChat && data.chatUid === activeChat.uid) {
                 setTypingUsers((prev) => {
                     const newSet = new Set(prev);
                     if (data.isTyping) {
                         newSet.add(data.userId);
+                        console.log('✅ Added user to typing set:', data.userId, 'Total typing:', newSet.size);
                         if (typingTimeoutRef.current[data.userId]) {
                             clearTimeout(typingTimeoutRef.current[data.userId]);
                         }
@@ -117,11 +127,13 @@ export const useChat = (user: User | null): UseChatReturn => {
                             setTypingUsers((s) => {
                                 const updated = new Set(s);
                                 updated.delete(data.userId);
+                                console.log('⏰ Auto-removed user from typing (timeout):', data.userId);
                                 return updated;
                             });
                         }, 3000);
                     } else {
                         newSet.delete(data.userId);
+                        console.log('🛑 Removed user from typing set:', data.userId);
                         if (typingTimeoutRef.current[data.userId]) {
                             clearTimeout(typingTimeoutRef.current[data.userId]);
                         }
@@ -138,6 +150,33 @@ export const useChat = (user: User | null): UseChatReturn => {
             Object.values(typingTimeoutRef.current).forEach(clearTimeout);
         };
     }, [activeChat]);
+
+    // Handle user online/offline status
+    useEffect(() => {
+        const handleUserOnline = (data: { userId: number }) => {
+            setOnlineUsers((prev) => {
+                const newSet = new Set(prev);
+                newSet.add(data.userId);
+                return newSet;
+            });
+        };
+
+        const handleUserOffline = (data: { userId: number }) => {
+            setOnlineUsers((prev) => {
+                const newSet = new Set(prev);
+                newSet.delete(data.userId);
+                return newSet;
+            });
+        };
+
+        onUserOnline(handleUserOnline);
+        onUserOffline(handleUserOffline);
+
+        return () => {
+            offUserOnline(handleUserOnline);
+            offUserOffline(handleUserOffline);
+        };
+    }, []);
 
     const loadChats = useCallback(async () => {
         if (!user || isLoadingChats.current) return;
@@ -338,6 +377,7 @@ export const useChat = (user: User | null): UseChatReturn => {
         loading,
         sending,
         typingUsers,
+        onlineUsers,
         setActiveChat,
         sendMessage,
         loadMoreMessages,

@@ -13,14 +13,14 @@ interface ChatListProps {
   activeChat: Chat | null;
   currentUser: User | null;
   loading: boolean;
+  onlineUsers: Set<number>;
   onSelectChat: (chat: Chat) => void;
   onStartNewChat: (user: User) => void;
 }
 
-export function ChatList({ chats, activeChat, currentUser, loading, onSelectChat, onStartNewChat }: ChatListProps) {
+export function ChatList({ chats, activeChat, currentUser, loading, onlineUsers, onSelectChat, onStartNewChat }: ChatListProps) {
   const getOtherUser = (chat: Chat): User | undefined => {
     if (!currentUser || !chat.user1 || !chat.user2) return undefined;
-    // Compare by ID to find the other user
     return Number(chat.user1.id) === Number(currentUser.id) ? chat.user2 : chat.user1;
   };
 
@@ -40,19 +40,16 @@ export function ChatList({ chats, activeChat, currentUser, loading, onSelectChat
 
   return (
     <div className="flex h-full flex-col">
-      {/* Search Bar */}
       <div className="border-b px-3 py-3">
         <UserSearch currentUser={currentUser} onSelectUser={onStartNewChat} />
       </div>
 
-      {/* Loading State */}
       {loading && chats.length === 0 && (
         <div className="flex flex-1 items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       )}
 
-      {/* Empty State */}
       {!loading && chats.length === 0 && (
         <div className="flex flex-1 items-center justify-center p-4 text-center">
           <div>
@@ -64,7 +61,6 @@ export function ChatList({ chats, activeChat, currentUser, loading, onSelectChat
         </div>
       )}
 
-      {/* Chat List */}
       {chats.length > 0 && (
         <ScrollArea className="flex-1">
           <div className="py-1">
@@ -83,16 +79,26 @@ export function ChatList({ chats, activeChat, currentUser, loading, onSelectChat
                   )}
                 >
                   <div className="flex items-start gap-3">
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={otherUser?.avatar} alt={otherUser?.name} />
-                      <AvatarFallback>{getInitials(otherUser?.name)}</AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={otherUser?.avatar} alt={otherUser?.name} />
+                        <AvatarFallback>{getInitials(otherUser?.name)}</AvatarFallback>
+                      </Avatar>
+                      {otherUser && onlineUsers.has(Number(otherUser.id)) && (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />
+                      )}
+                    </div>
 
                     <div className="flex-1 space-y-1 overflow-hidden">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium leading-none">
-                          {otherUser?.name || 'Unknown User'}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium leading-none">
+                            {otherUser?.name || 'Unknown User'}
+                          </p>
+                          {otherUser && onlineUsers.has(Number(otherUser.id)) && (
+                            <span className="text-xs text-green-600 dark:text-green-400">●</span>
+                          )}
+                        </div>
                         {lastMessage && (
                           <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(lastMessage.created_at), {

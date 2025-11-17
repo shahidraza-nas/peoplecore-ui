@@ -25,6 +25,7 @@ export default function ChatPage() {
         loading,
         sending,
         typingUsers,
+        onlineUsers,
         setActiveChat,
         sendMessage,
         markAsRead,
@@ -92,7 +93,7 @@ export default function ChatPage() {
     };
 
     return (
-        <div className="flex flex-col h-full px-6 pt-6 pb-4">
+        <div className="flex flex-col" style={{ height: 'calc(100vh - 10rem)' }}>
             {/* Header */}
             <div className="flex items-center gap-4 mb-4 flex-shrink-0">
                 <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -116,6 +117,7 @@ export default function ChatPage() {
                             activeChat={activeChat}
                             currentUser={user}
                             loading={loading}
+                            onlineUsers={onlineUsers}
                             onSelectChat={setActiveChat}
                             onStartNewChat={handleStartNewChat}
                         />
@@ -130,6 +132,7 @@ export default function ChatPage() {
                             loading={loading}
                             sending={sending}
                             typingUsers={typingUsers}
+                            onlineUsers={onlineUsers}
                             onSendMessage={handleSendMessage}
                             onMarkAsRead={markAsRead}
                             onTyping={handleSetTyping}

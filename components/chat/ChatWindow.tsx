@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface ChatWindowProps {
     activeChat: Chat | null;
@@ -16,6 +15,7 @@ interface ChatWindowProps {
     loading: boolean;
     sending: boolean;
     typingUsers: Set<number>;
+    onlineUsers: Set<number>;
     onSendMessage: (toUserUid: string, message: string) => Promise<void>;
     onMarkAsRead: (chatUid: string) => Promise<void>;
     onTyping: (toUserId: number, isTyping: boolean, chatUid: string) => void;
@@ -28,6 +28,7 @@ export function ChatWindow({
     loading,
     sending,
     typingUsers,
+    onlineUsers,
     onSendMessage,
     onMarkAsRead,
     onTyping,
@@ -52,10 +53,8 @@ export function ChatWindow({
         }
     }, [messages]);
 
-    // Auto-focus input when chat is selected
     useEffect(() => {
         if (activeChat && inputRef.current) {
-            // Small delay to ensure UI is ready
             setTimeout(() => {
                 inputRef.current?.focus();
             }, 100);
@@ -132,23 +131,33 @@ export function ChatWindow({
         <div className="flex h-full flex-col min-h-0">
             {/* Header */}
             <div className="flex items-center gap-3 border-b bg-background px-6 py-4 flex-shrink-0">
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-semibold text-primary">
-                        {otherUser?.name
-                            ?.split(' ')
-                            .map((n) => n[0])
-                            .join('')
-                            .toUpperCase()
-                            .slice(0, 2) || '?'}
-                    </span>
+                <div className="relative">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-primary">
+                            {otherUser?.name
+                                ?.split(' ')
+                                .map((n) => n[0])
+                                .join('')
+                                .toUpperCase()
+                                .slice(0, 2) || '?'}
+                        </span>
+                    </div>
+                    {otherUser && onlineUsers.has(Number(otherUser.id)) && (
+                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />
+                    )}
                 </div>
                 <div className="flex-1">
                     <h3 className="font-semibold text-base">{otherUser?.name || 'Unknown User'}</h3>
-                    <p className="text-xs text-muted-foreground">{otherUser?.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {otherUser && onlineUsers.has(Number(otherUser.id)) ? (
+                            <span className="text-green-600 dark:text-green-400">● Online</span>
+                        ) : (
+                            <span className="text-zinc-500 dark:text-zinc-400">Offline</span>
+                        )}
+                    </p>
                 </div>
             </div>
 
-            {/* Messages */}
             <ScrollArea ref={scrollAreaRef} className="flex-1 p-6 min-h-0 bg-zinc-50/50 dark:bg-zinc-900/50">
                 {loading && messages.length === 0 ? (
                     <div className="flex h-full items-center justify-center">
@@ -171,7 +180,6 @@ export function ChatWindow({
                     </div>
                 )}
 
-                {/* Typing indicator */}
                 {typingUsers.size > 0 && (
                     <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                         <div className="flex gap-1">
@@ -184,7 +192,6 @@ export function ChatWindow({
                 )}
             </ScrollArea>
 
-            {/* Input - Fixed at bottom */}
             <div className="border-t p-4 flex-shrink-0 bg-background">
                 <form
                     onSubmit={(e) => {
@@ -203,9 +210,9 @@ export function ChatWindow({
                         className="flex-1 rounded-full px-4 h-11 bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 focus-visible:ring-primary"
                         autoComplete="off"
                     />
-                    <Button 
-                        type="submit" 
-                        disabled={!messageText.trim() || sending} 
+                    <Button
+                        type="submit"
+                        disabled={!messageText.trim() || sending}
                         size="icon"
                         className="rounded-full h-11 w-11 flex-shrink-0"
                     >
