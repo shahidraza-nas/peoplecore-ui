@@ -85,14 +85,10 @@ export const useChat = (user: User | null): UseChatReturn => {
             setChats((prevChats) => {
                 const updatedChats = prevChats.map((chat) => {
                     if (chat.id === newMessage.chatId) {
-                        const isMessageForMe = newMessage.toUserId === user?.id;
-                        const isInActiveChat = activeChat && activeChat.id === newMessage.chatId;
-                        const incrementUnread = isMessageForMe && !isInActiveChat && !newMessage.isRead;
                         return {
                             ...chat,
                             messages: [newMessage],
                             updated_at: newMessage.created_at,
-                            unreadCount: incrementUnread ? (chat.unreadCount || 0) + 1 : chat.unreadCount,
                         };
                     }
                     return chat;
@@ -205,7 +201,6 @@ export const useChat = (user: User | null): UseChatReturn => {
                         ? {
                               ...chat,
                               messages: chat.messages?.map((msg) => ({ ...msg, isRead: true })),
-                              unreadCount: 0,
                           }
                         : chat
                 )
@@ -232,11 +227,6 @@ export const useChat = (user: User | null): UseChatReturn => {
                 return;
             }
             const loadedChats = response.data?.chats || [];
-            console.log('Loaded chats with unread counts:', loadedChats.map(c => ({
-                uid: c.uid,
-                unreadCount: c.unreadCount,
-                messages: c.messages?.length
-            })));
             const sortedChats = loadedChats.sort((a, b) => {
                 const aTime = a.messages?.[0]?.created_at || a.updated_at || a.created_at;
                 const bTime = b.messages?.[0]?.created_at || b.updated_at || b.created_at;
@@ -352,11 +342,6 @@ export const useChat = (user: User | null): UseChatReturn => {
             await markChatAsRead(chatUid);
             setMessages((prev) =>
                 prev.map((msg) => (msg.chatId === activeChat?.id ? { ...msg, isRead: true } : msg))
-            );
-            setChats((prev) =>
-                prev.map((chat) =>
-                    chat.uid === chatUid ? { ...chat, unreadCount: 0 } : chat
-                )
             );
         } catch (error) {
             console.error('Failed to mark as read:', error);
