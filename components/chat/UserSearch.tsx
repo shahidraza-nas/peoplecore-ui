@@ -5,11 +5,9 @@ import { User } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { Search, Plus, Loader2, X } from 'lucide-react';
+import { Search, Loader2, X } from 'lucide-react';
 import { searchUsers as searchUsersAction } from '@/actions/user.action';
-import { cn } from '@/lib/utils';
-import toast from 'react-hot-toast';
+
 
 interface UserSearchProps {
   currentUser: User | null;
@@ -104,7 +102,7 @@ export function UserSearch({ currentUser, onSelectUser }: UserSearchProps) {
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="text"
-          placeholder="Search users to start a chat..."
+          placeholder="Search users to start a chat"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);

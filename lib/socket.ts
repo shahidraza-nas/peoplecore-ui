@@ -20,6 +20,7 @@ export const connectSocket = (token: string): Socket => {
 
     socket.on('connect', () => {
         console.log('Socket connected:', socket?.id);
+        socket?.emit('getOnlineUsers');
     });
 
     socket.on('disconnect', (reason) => {
@@ -106,6 +107,13 @@ export const onUserOffline = (callback: (data: { userId: number }) => void) => {
     });
 };
 
+export const onOnlineUsersList = (callback: (data: { userIds: number[] }) => void) => {
+    socket?.on('onlineUsers.list', (data) => {
+        console.log('Received online users list:', data);
+        callback(data);
+    });
+};
+
 export const offMessage = (callback?: (data: any) => void) => {
     if (callback) {
         socket?.off('user.message', callback);
@@ -135,5 +143,13 @@ export const offUserOffline = (callback?: (data: any) => void) => {
         socket?.off('user.offline', callback);
     } else {
         socket?.off('user.offline');
+    }
+};
+
+export const offOnlineUsersList = (callback?: (data: any) => void) => {
+    if (callback) {
+        socket?.off('onlineUsers.list', callback);
+    } else {
+        socket?.off('onlineUsers.list');
     }
 };

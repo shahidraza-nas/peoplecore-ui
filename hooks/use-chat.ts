@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { connectSocket, disconnectSocket, onMessage, offMessage, onTyping, offTyping, onUserOnline, offUserOnline, onUserOffline, offUserOffline, emitMessage, emitTyping, getSocket } from '@/lib/socket';
+import { connectSocket, disconnectSocket, onMessage, offMessage, onTyping, offTyping, onUserOnline, offUserOnline, onUserOffline, offUserOffline, onOnlineUsersList, offOnlineUsersList, emitMessage, emitTyping, getSocket } from '@/lib/socket';
 import {
     getMyChats,
     getChatMessages,
@@ -147,32 +147,40 @@ export const useChat = (user: User | null): UseChatReturn => {
 
     useEffect(() => {
         const handleUserOnline = (data: { userId: number }) => {
-            console.log('User online event:', data);
+            console.log('USER CAME ONLINE:', data.userId);
             setOnlineUsers((prev) => {
                 const newSet = new Set(prev);
                 newSet.add(data.userId);
-                console.log('Online users:', Array.from(newSet));
+                console.log('Current online users:', Array.from(newSet));
                 return newSet;
             });
         };
 
         const handleUserOffline = (data: { userId: number }) => {
-            console.log('User offline event:', data);
+            console.log('USER WENT OFFLINE:', data.userId);
             setOnlineUsers((prev) => {
                 const newSet = new Set(prev);
                 newSet.delete(data.userId);
-                console.log('Online users:', Array.from(newSet));
+                console.log('Current online users:', Array.from(newSet));
                 return newSet;
             });
+        };
+
+        const handleOnlineUsersList = (data: { userIds: number[] }) => {
+            console.log('RECEIVED INITIAL ONLINE USERS LIST:', data.userIds);
+            setOnlineUsers(new Set(data.userIds));
+            console.log('Set online users to:', data.userIds);
         };
 
         console.log('Setting up online/offline listeners');
         onUserOnline(handleUserOnline);
         onUserOffline(handleUserOffline);
+        onOnlineUsersList(handleOnlineUsersList);
 
         return () => {
             offUserOnline(handleUserOnline);
             offUserOffline(handleUserOffline);
+            offOnlineUsersList(handleOnlineUsersList);
         };
     }, []);
 

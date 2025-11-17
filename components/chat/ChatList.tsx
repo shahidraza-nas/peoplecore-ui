@@ -84,21 +84,18 @@ export function ChatList({ chats, activeChat, currentUser, loading, onlineUsers,
                         <AvatarImage src={otherUser?.avatar} alt={otherUser?.name} />
                         <AvatarFallback>{getInitials(otherUser?.name)}</AvatarFallback>
                       </Avatar>
-                      {otherUser && onlineUsers.has(Number(otherUser.id)) && (
-                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />
+                      {otherUser && (
+                        <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
+                          onlineUsers.has(Number(otherUser.id)) ? 'bg-green-500' : 'bg-gray-400'
+                        }`} />
                       )}
                     </div>
 
                     <div className="flex-1 space-y-1 overflow-hidden">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-medium leading-none">
-                            {otherUser?.name || 'Unknown User'}
-                          </p>
-                          {otherUser && onlineUsers.has(Number(otherUser.id)) && (
-                            <span className="text-xs text-green-600 dark:text-green-400">●</span>
-                          )}
-                        </div>
+                        <p className="text-sm font-medium leading-none">
+                          {otherUser?.name || 'Unknown User'}
+                        </p>
                         {lastMessage && (
                           <span className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(lastMessage.created_at), {

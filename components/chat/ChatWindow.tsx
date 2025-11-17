@@ -74,15 +74,13 @@ export function ChatWindow({
 
     const handleSend = async () => {
         if (!messageText.trim() || !otherUser || sending) return;
-
         const text = messageText.trim();
         setMessageText('');
-
         if (activeChat) {
             onTyping(otherUser.id, false, activeChat.uid);
         }
-
         await onSendMessage(otherUser.uid, text);
+        inputRef.current?.focus();
     };
 
     const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -94,10 +92,8 @@ export function ChatWindow({
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setMessageText(e.target.value);
-
         if (activeChat && otherUser) {
             onTyping(otherUser.id, true, activeChat.uid);
-
             if (typingTimeoutRef.current) {
                 clearTimeout(typingTimeoutRef.current);
             }
@@ -142,23 +138,21 @@ export function ChatWindow({
                                 .slice(0, 2) || '?'}
                         </span>
                     </div>
-                    {otherUser && onlineUsers.has(Number(otherUser.id)) && (
-                        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-background" />
+                    {otherUser && (
+                        <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
+                            onlineUsers.has(Number(otherUser.id)) ? 'bg-green-500' : 'bg-gray-400'
+                        }`} />
                     )}
                 </div>
                 <div className="flex-1">
                     <h3 className="font-semibold text-base">{otherUser?.name || 'Unknown User'}</h3>
                     <p className="text-xs text-muted-foreground">
-                        {otherUser && onlineUsers.has(Number(otherUser.id)) ? (
-                            <span className="text-green-600 dark:text-green-400">● Online</span>
-                        ) : (
-                            <span className="text-zinc-500 dark:text-zinc-400">Offline</span>
-                        )}
+                        {otherUser && typingUsers.has(Number(otherUser.id)) ? (
+                            <span className="text-blue-600 dark:text-blue-400">typing...</span>
+                        ) : otherUser && onlineUsers.has(Number(otherUser.id)) ? (
+                            <span className="text-green-600 dark:text-green-400">Active now</span>
+                        ) : null}
                     </p>
-                </div>
-                <div className="text-xs text-muted-foreground">
-                    <div>Online: {onlineUsers.size} | Typing: {typingUsers.size}</div>
-                    <div>User ID: {otherUser?.id}</div>
                 </div>
             </div>
 
@@ -181,17 +175,6 @@ export function ChatWindow({
                                 isConsecutive={isConsecutive(index)}
                             />
                         ))}
-                    </div>
-                )}
-
-                {typingUsers.size > 0 && (
-                    <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-                        <div className="flex gap-1">
-                            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: '0ms' }} />
-                            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: '150ms' }} />
-                            <span className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground" style={{ animationDelay: '300ms' }} />
-                        </div>
-                        <span>{otherUser?.name} is typing...</span>
                     </div>
                 )}
             </ScrollArea>
