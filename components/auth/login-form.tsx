@@ -15,7 +15,7 @@ import * as z from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
-import { CheckCircle, Eye, EyeOff } from "lucide-react";
+import { CheckCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { login, verify2Fa } from "@/actions/auth.action";
@@ -107,48 +107,57 @@ export function LoginForm({
   if (requiresOtp) {
     return (
       <div className={cn("flex flex-col gap-6", className)} {...props}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Two-Factor Authentication</CardTitle>
-            <CardDescription>
-              Enter the OTP sent to your email address
+        <Card className="border-border/50 shadow-lg">
+          <CardHeader className="space-y-1 pb-6">
+            <CardTitle className="text-2xl font-bold tracking-tight">Two-Factor Authentication</CardTitle>
+            <CardDescription className="text-base">
+              Enter the 4-digit code sent to your email address
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={onVerifyOtp}>
               <div className="flex flex-col gap-6">
                 <div className="grid gap-2">
-                  <Label htmlFor="otp">One-Time Password</Label>
+                  <Label htmlFor="otp" className="text-sm font-medium">Verification Code</Label>
                   <Input
                     id="otp"
                     type="text"
-                    placeholder="Enter 4-digit OTP"
+                    placeholder="0000"
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value)}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
                     maxLength={4}
                     disabled={isLoading}
+                    className="h-11 text-center text-lg tracking-widest font-semibold transition-all"
                   />
                 </div>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 pt-2">
                   <Button
                     type="submit"
                     disabled={isLoading || otpCode.length !== 4}
-                    className="w-full cursor-pointer"
+                    className="w-full h-11 font-semibold cursor-pointer transition-all hover:shadow-md"
                   >
-                    Verify OTP
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      "Verify Code"
+                    )}
                   </Button>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => {
                       setRequiresOtp(false);
                       setSessionId("");
                       setOtpCode("");
                     }}
                     disabled={isLoading}
+                    className="w-full h-11"
                   >
-                    Back to Login
+                    Back to Sign In
                   </Button>
                 </div>
               </div>
@@ -161,52 +170,61 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle>Login to your account</CardTitle>
-          <CardDescription>Enter your email below to login</CardDescription>
+      <Card className="border-border/50 shadow-lg">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold tracking-tight">Welcome back</CardTitle>
+          <CardDescription className="text-base">Enter your credentials to access your account</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-6">
           <form onSubmit={handleSubmit(onLogin)}>
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-5">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder="name@example.com"
                   {...register("email")}
+                  className={cn(
+                    "h-11 transition-all",
+                    errors.email && "border-destructive focus-visible:ring-destructive"
+                  )}
                 />
                 {errors.email && (
-                  <p className="text-sm text-red-500">{errors.email.message}</p>
+                  <p className="text-sm text-destructive flex items-center gap-1 animate-in fade-in-50 duration-200">
+                    <span className="text-xs">⚠</span> {errors.email.message}
+                  </p>
                 )}
               </div>
 
               <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                   <a
                     href="#"
-                    className="ml-auto text-sm underline-offset-4 hover:underline"
+                    className="text-sm text-primary hover:text-primary/80 font-medium transition-colors"
                     onClick={(e) => {
                       e.preventDefault();
                       onForgotPassword?.();
                     }}
                   >
-                    Forgot your password?
+                    Forgot password?
                   </a>
                 </div>
                 <div className="relative">
                   <Input
                     id="password"
-                    placeholder="Password"
+                    placeholder="Enter your password"
                     type={showPassword ? "text" : "password"}
                     {...register("password")}
-                    className="pr-10"
+                    className={cn(
+                      "h-11 pr-10 transition-all",
+                      errors.password && "border-destructive focus-visible:ring-destructive"
+                    )}
                   />
                   <button
                     type="button"
-                    className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 cursor-pointer"
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                     onClick={() => setShowPassword((prev) => !prev)}
                     tabIndex={-1}
                   >
@@ -218,19 +236,26 @@ export function LoginForm({
                   </button>
                 </div>
                 {errors.password && (
-                  <p className="text-sm text-red-500">
-                    {errors.password.message}
+                  <p className="text-sm text-destructive flex items-center gap-1 animate-in fade-in-50 duration-200">
+                    <span className="text-xs">⚠</span> {errors.password.message}
                   </p>
                 )}
               </div>
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 pt-2">
                 <Button
                   type="submit"
                   disabled={isSubmitting || isLoading}
-                  className="w-full cursor-pointer"
+                  className="w-full h-11 font-semibold cursor-pointer transition-all hover:shadow-md"
                 >
-                  Login
+                  {isSubmitting || isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Sign In"
+                  )}
                 </Button>
               </div>
             </div>

@@ -10,9 +10,9 @@ interface UseEmployeesReturn {
   totalCount: number;
   fetchEmployees: (query?: string) => Promise<void>;
   createEmployee: (data: CreateEmployeeData) => Promise<void>;
-  updateEmployee: (id: number, data: Partial<User>) => Promise<void>;
-  deleteEmployee: (id: number) => Promise<void>;
-  getEmployeeById: (id: number) => Promise<User | null>;
+  updateEmployee: (uid: string, data: Partial<User>) => Promise<void>;
+  deleteEmployee: (uid: string) => Promise<void>;
+  getEmployeeById: (uid: string) => Promise<User | null>;
 }
 
 export function useEmployees(): UseEmployeesReturn {
@@ -70,15 +70,15 @@ export function useEmployees(): UseEmployeesReturn {
     }
   }, [fetchEmployees]);
 
-  const updateEmployee = useCallback(async (id: number, data: Partial<User>): Promise<void> => {
+  const updateEmployee = useCallback(async (uid: string, data: Partial<User>): Promise<void> => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await API.UpdateById<Partial<User>, { user: User }>('user', id, data);
+      const response = await API.UpdateById<Partial<User>, { user: User }>('user', uid, data);
       toast.success(response.message || 'Employee updated successfully');
 
-      setEmployees(prev => prev.map(emp => emp.id === id ? (response.data?.user || emp) : emp));
+      setEmployees(prev => prev.map(emp => emp.uid === uid ? (response.data?.user || emp) : emp));
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError);
@@ -89,14 +89,14 @@ export function useEmployees(): UseEmployeesReturn {
     }
   }, []);
 
-  const deleteEmployee = useCallback(async (id: number): Promise<void> => {
+  const deleteEmployee = useCallback(async (uid: string): Promise<void> => {
     setLoading(true);
     setError(null);
 
     try {
-      await API.DeleteById('user', id);
+      await API.DeleteById('user', uid);
       toast.success('Employee deleted successfully');
-      setEmployees(prev => prev.filter(emp => emp.id !== id));
+      setEmployees(prev => prev.filter(emp => emp.uid !== uid));
       setTotalCount(prev => prev - 1);
     } catch (err) {
       const apiError = err as ApiError;
@@ -108,12 +108,12 @@ export function useEmployees(): UseEmployeesReturn {
     }
   }, []);
 
-  const getEmployeeById = useCallback(async (id: number): Promise<User | null> => {
+  const getEmployeeById = useCallback(async (uid: string): Promise<User | null> => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await API.GetById<{ user: User }>('user', id);
+      const response = await API.GetById<{ user: User }>('user', uid);
       return response.data?.user || null;
     } catch (err) {
       const apiError = err as ApiError;

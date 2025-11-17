@@ -54,18 +54,18 @@ export default function RegisterForm() {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle>Create Account</CardTitle>
-        <CardDescription>
-          Sign up to get started with PeopleCore
+    <Card className="w-full max-w-md border-border/50 shadow-lg">
+      <CardHeader className="space-y-1 pb-6">
+        <CardTitle className="text-2xl font-bold tracking-tight">Create your account</CardTitle>
+        <CardDescription className="text-base">
+          Join PeopleCore to manage your team efficiently
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleRegister}>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
+              <Label htmlFor="firstName" className="text-sm font-medium">First Name</Label>
               <Input
                 id="firstName"
                 type="text"
@@ -74,10 +74,11 @@ export default function RegisterForm() {
                 onChange={(e) => setFirstName(e.target.value)}
                 required
                 disabled={loading}
+                className="h-11 transition-all"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
+              <Label htmlFor="lastName" className="text-sm font-medium">Last Name</Label>
               <Input
                 id="lastName"
                 type="text"
@@ -86,25 +87,29 @@ export default function RegisterForm() {
                 onChange={(e) => setLastName(e.target.value)}
                 required
                 disabled={loading}
+                className="h-11 transition-all"
               />
             </div>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
             <Input
               id="email"
               type="email"
-              placeholder="your.email@example.com"
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
+              className="h-11 transition-all"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone (Optional)</Label>
+            <Label htmlFor="phone" className="text-sm font-medium">
+              Phone Number <span className="text-muted-foreground text-xs">(Optional)</span>
+            </Label>
             <Input
               id="phone"
               type="tel"
@@ -113,41 +118,45 @@ export default function RegisterForm() {
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
               maxLength={10}
               disabled={loading}
+              className="h-11 transition-all"
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-sm font-medium">Password</Label>
             <div className="relative">
               <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
-                placeholder="At least 6 characters"
+                placeholder="Minimum 6 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
                 disabled={loading}
+                className="h-11 pr-10 transition-all"
               />
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                className="absolute right-0 top-0 h-full px-3 flex items-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={loading}
+                tabIndex={-1}
               >
                 {showPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  <EyeOff className="h-5 w-5" />
                 ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <Eye className="h-5 w-5" />
                 )}
-              </Button>
+              </button>
             </div>
+            {password && password.length < 6 && (
+              <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Label htmlFor="confirmPassword" className="text-sm font-medium">Confirm Password</Label>
             <div className="relative">
               <Input
                 id="confirmPassword"
@@ -157,29 +166,34 @@ export default function RegisterForm() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={loading}
+                className="h-11 pr-10 transition-all"
               />
-              <Button
+              <button
                 type="button"
-                variant="ghost"
-                size="sm"
-                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                className="absolute right-0 top-0 h-full px-3 flex items-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 disabled={loading}
+                tabIndex={-1}
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  <EyeOff className="h-5 w-5" />
                 ) : (
-                  <Eye className="h-4 w-4 text-muted-foreground" />
+                  <Eye className="h-5 w-5" />
                 )}
-              </Button>
+              </button>
             </div>
+            {confirmPassword && password !== confirmPassword && (
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <span>⚠</span> Passwords do not match
+              </p>
+            )}
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 pt-6">
           <Button 
             type="submit" 
-            className="w-full" 
-            disabled={loading || password !== confirmPassword}
+            className="w-full h-11 font-semibold transition-all hover:shadow-md" 
+            disabled={loading || password !== confirmPassword || !firstName || !lastName || !email}
           >
             {loading ? (
               <>
@@ -190,9 +204,17 @@ export default function RegisterForm() {
               "Create Account"
             )}
           </Button>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">or</span>
+            </div>
+          </div>
           <p className="text-sm text-center text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="text-foreground font-medium hover:underline">
+            <Link href="/login" className="text-primary font-semibold hover:text-primary/80 transition-colors">
               Sign in
             </Link>
           </p>

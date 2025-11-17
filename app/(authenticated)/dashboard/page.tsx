@@ -133,14 +133,13 @@ export default function DashboardPage() {
                             {employees.slice(0, 5).map((employee) => (
                                 <div
                                     key={employee.id}
-                                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
-                                    onClick={() => router.push("/employees")}
+                                    className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                                 >
                                     <Avatar>
                                         <AvatarImage src={employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}`} />
                                         <AvatarFallback>{employee.first_name[0]}{employee.last_name[0]}</AvatarFallback>
                                     </Avatar>
-                                    <div className="flex-1 min-w-0">
+                                    <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push("/employees")}>
                                         <p className="text-sm font-medium">{employee.name}</p>
                                         <p className="text-sm text-zinc-600 dark:text-zinc-400 truncate">{employee.email}</p>
                                     </div>
@@ -153,6 +152,17 @@ export default function DashboardPage() {
                                                 Active
                                             </span>
                                         )}
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                router.push(`/chat?user=${employee.uid}`);
+                                            }}
+                                            title={`Chat with ${employee.name}`}
+                                        >
+                                            <MessageSquare className="h-4 w-4" />
+                                        </Button>
                                     </div>
                                 </div>
                             ))}

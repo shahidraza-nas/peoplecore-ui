@@ -1,6 +1,6 @@
-import { getSession } from "next-auth/react";
-import { auth } from "@/auth";
 import { User } from "@/models/user";
+import { auth } from "@/auth";
+import { getSession } from "next-auth/react";
 
 export interface QueryParams {
   offset?: number;
@@ -45,10 +45,13 @@ export const getHttpOption = async (options: HttpOptions): Promise<Headers> => {
   }
   if (!isMultipart) headers.set("Content-Type", "application/json");
   if (!!secured) {
-    const session =
-      typeof window === "undefined" ? await auth() : await getSession();
-    if (!!session?.user) {
-      headers.set("Authorization", `Bearer ${session.user.accessToken}`);
+    // Use NextAuth session for both server-side and client-side
+    const session = typeof window === "undefined" 
+      ? await auth()  // Server-side: use auth()
+      : await getSession();  // Client-side: use getSession()
+    
+    if (session?.user) {
+      headers.set("Authorization", `Bearer ${(session.user as any).accessToken}`);
     }
   }
   return headers;
@@ -90,8 +93,8 @@ const generateQueryUrl = (path: string, options?: QueryParams): string => {
     for (const key in options.data) {
       if (Object.prototype.hasOwnProperty.call(options.data, key)) {
         url += `${key}=${typeof options.data[key] === "object"
-            ? JSON.stringify(options.data[key])
-            : options.data[key]
+          ? JSON.stringify(options.data[key])
+          : options.data[key]
           }&`;
       }
     }

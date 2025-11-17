@@ -107,7 +107,7 @@ export default async function EmployeeDetailsPage({ params }: PageProps) {
                             <div className="space-y-3 pl-7">
                                 <div>
                                     <p className="text-sm text-muted-foreground">User ID</p>
-                                    <p className="font-medium font-mono">{employee.id}</p>
+                                    <p className="font-medium font-mono">{employee.uid}</p>
                                 </div>
                                 <div>
                                     <p className="text-sm text-muted-foreground">Role</p>

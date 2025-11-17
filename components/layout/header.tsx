@@ -43,21 +43,21 @@ export function Header() {
                             <div className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity">
                                 <Avatar>
                                     <AvatarImage 
-                                        src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'User')}`} 
-                                        alt={user?.name || 'User'} 
+                                        src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || user?.first_name || 'User')}`} 
+                                        alt={user?.name || user?.first_name || 'User'} 
                                     />
                                     <AvatarFallback>
-                                        {user?.first_name?.[0] || 'U'}{user?.last_name?.[0] || ''}
+                                        {user?.first_name?.[0] || user?.name?.[0] || 'U'}{user?.last_name?.[0] || ''}
                                     </AvatarFallback>
                                 </Avatar>
-                                <span className="hidden sm:block text-sm font-medium">{user?.name || 'User'}</span>
+                                <span className="hidden sm:block text-sm font-medium">{user?.first_name || user?.name || 'User'}</span>
                             </div>
                         </DropdownMenuTrigger>
 
                         <DropdownMenuContent align="end" className="w-56">
                             <DropdownMenuLabel>
                                 <div className="flex flex-col space-y-1">
-                                    <p className="text-sm font-medium">{user?.name}</p>
+                                    <p className="text-sm font-medium">{user?.first_name}</p>
                                     <p className="text-xs text-zinc-500 dark:text-zinc-400">{user?.email}</p>
                                 </div>
                             </DropdownMenuLabel>

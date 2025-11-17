@@ -1,10 +1,34 @@
 "use server";
 
 import { API } from "@/lib/fetch";
-import { User } from "@/models/user";
+import { User, AuthProvider } from "@/lib/types";
 
 export interface UserMeResponse {
   user: User;
+}
+
+function normalizeUser(user: any): User {
+  return {
+    id: user.id,
+    uid: user.uid,
+    role: user.role,
+    provider: user.provider || AuthProvider.Local,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    name: user.full_name || user.name || `${user.first_name} ${user.last_name}`,
+    email: user.email,
+    phone_code: user.phone_code,
+    phone: user.phone,
+    avatar: user.profile_image || user.avatar,
+    enable_2fa: user.enable_2fa,
+    send_email: user.send_email,
+    send_sms: user.send_sms,
+    send_push: user.send_push,
+    last_login_at: user.last_login_at,
+    created_at: user.created_at,
+    updated_at: user.updated_at,
+    active: user.active,
+  };
 }
 
 export async function getMe() {
@@ -25,14 +49,7 @@ export async function updateMe(
   }
 ) {
   try {
-    let updateData: Partial<User> = {};
-
-    if (profileData) {
-      updateData = {
-        ...profileData,
-        name: profileData.full_name,
-      };
-    }
+    const updateData: any = profileData ? { ...profileData } : {};
 
     const { data, error, statusCode } = await API.UpdateMe(updateData);
 
@@ -107,4 +124,40 @@ export async function forgotPassword({ email }: { email: string }) {
     statusCode,
     error: null,
   };
+}
+
+export async function searchUsers(query: string): Promise<{
+  success: boolean;
+  data?: { users: User[]; count: number };
+  error?: any;
+}> {
+  try {
+    if (!query || query.length < 2) {
+      return { success: true, data: { users: [], count: 0 } };
+    }
+
+    const response = await API.GetAll<any>("user", {
+      search: query,
+      limit: 10,
+      offset: 0,
+    });
+
+    if (response.error) {
+      return { success: false, error: response.error };
+    }
+
+    const users = (response.data?.users || []).map((user: any) => normalizeUser(user));
+    const count = response.data?.count || 0;
+
+    return {
+      success: true,
+      data: { users, count },
+    };
+  } catch (error) {
+    console.error("Error searching users:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to search users",
+    };
+  }
 }

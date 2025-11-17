@@ -1,77 +1,142 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/use-auth";
+import { useChat } from "@/hooks/use-chat";
+import { ChatList } from "@/components/chat/ChatList";
+import { ChatWindow } from "@/components/chat/ChatWindow";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
-import { MessageSquare, Users, ArrowLeft } from "lucide-react";
-
-const mockUsers = [
-    { id: "1", name: "Alice Johnson", avatar: "https://ui-avatars.com/api/?name=Alice+Johnson", status: "online", lastMessage: "Hey, how are you?", time: "2m ago" },
-    { id: "2", name: "Bob Smith", avatar: "https://ui-avatars.com/api/?name=Bob+Smith", status: "offline", lastMessage: "See you tomorrow!", time: "1h ago" },
-    { id: "3", name: "Carol Davis", avatar: "https://ui-avatars.com/api/?name=Carol+Davis", status: "online", lastMessage: "Thanks for the help!", time: "5m ago" },
-    { id: "4", name: "David Wilson", avatar: "https://ui-avatars.com/api/?name=David+Wilson", status: "offline", lastMessage: "Let's catch up soon", time: "3h ago" },
-    { id: "5", name: "Emma Brown", avatar: "https://ui-avatars.com/api/?name=Emma+Brown", status: "online", lastMessage: "Perfect, thanks!", time: "10m ago" },
-];
+import { ArrowLeft } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { User } from "@/lib/types";
+import toast from "react-hot-toast";
+import { useEffect, useState } from "react";
+import { searchUsers } from "@/actions/user.action";
 
 export default function ChatPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const { user } = useAuth();
+    const [isInitializingChat, setIsInitializingChat] = useState(false);
+    const {
+        chats,
+        activeChat,
+        messages,
+        loading,
+        sending,
+        typingUsers,
+        setActiveChat,
+        sendMessage,
+        markAsRead,
+        setTyping,
+        createNewChat,
+        refreshChats,
+    } = useChat(user);
+
+    useEffect(() => {
+        const userUid = searchParams.get('user');
+        if (userUid && !isInitializingChat && chats.length > 0) {
+            setIsInitializingChat(true);
+            const existingChat = chats.find(chat => {
+                const otherUser = Number(chat.user1?.id) === Number(user?.id) ? chat.user2 : chat.user1;
+                return otherUser?.uid === userUid;
+            });
+
+            if (existingChat) {
+                setActiveChat(existingChat);
+                router.replace('/chat', { scroll: false });
+            } else {
+                searchUsers('').then(result => {
+                    if (result.success && result.data?.users) {
+                        const targetUser = result.data.users.find(u => u.uid === userUid);
+                        if (targetUser) {
+                            handleStartNewChat(targetUser);
+                        }
+                    }
+                    router.replace('/chat', { scroll: false });
+                });
+            }
+        }
+    }, [searchParams, chats, user, isInitializingChat]);
+
+    const handleSendMessage = async (toUserUid: string, message: string) => {
+        await sendMessage(toUserUid, message);
+    };
+
+    const handleSetTyping = (toUserId: number, isTyping: boolean, chatUid: string) => {
+        setTyping(toUserId, isTyping, chatUid);
+    };
+
+    const handleStartNewChat = async (selectedUser: User) => {
+        try {
+            const existingChat = chats.find(chat => {
+                const otherUser = Number(chat.user1?.id) === Number(user?.id) ? chat.user2 : chat.user1;
+                return otherUser?.uid === selectedUser.uid;
+            });
+
+            if (existingChat) {
+                setActiveChat(existingChat);
+                toast.success(`Opened chat with ${selectedUser.name}`);
+                return;
+            }
+            const chat = await createNewChat(selectedUser.uid);
+            if (chat) {
+                await refreshChats();
+                setActiveChat(chat);
+                toast.success(`Started chat with ${selectedUser.name}`);
+            }
+        } catch (error) {
+            console.error('Error starting new chat:', error);
+            toast.error('Failed to start chat');
+        }
+    };
 
     return (
-        <div className="space-y-8">
-            <div className="flex items-center gap-4 mb-6">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => router.back()}
-                >
+        <div className="flex flex-col h-full px-6 pt-6 pb-4">
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-4 flex-shrink-0">
+                <Button variant="ghost" size="icon" onClick={() => router.back()}>
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <div className="text-center flex-1">
+                <div>
                     <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
-                    <p className="text-zinc-500 dark:text-zinc-400">
-                        Start a conversation with your team members
+                    <p className="text-muted-foreground">
+                        Chat with your team members
                     </p>
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Users className="w-5 h-5" />
-                            Recent Conversations
-                        </CardTitle>
-                        <CardDescription>Select a contact to start chatting</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                        {mockUsers.map((user) => (
-                            <div
-                                key={user.id}
-                                onClick={() => router.push(`/chat/${user.id}`)}
-                                className="flex items-center gap-4 p-4 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer transition-colors border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700"
-                            >
-                                <div className="relative">
-                                    <Avatar className="w-12 h-12">
-                                        <AvatarImage src={user.avatar} />
-                                        <AvatarFallback>{user.name[0]}</AvatarFallback>
-                                    </Avatar>
-                                    {user.status === "online" && (
-                                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-zinc-900 rounded-full" />
-                                    )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center justify-between">
-                                        <h3 className="font-semibold text-sm">{user.name}</h3>
-                                        <span className="text-xs text-zinc-500 dark:text-zinc-400">{user.time}</span>
-                                    </div>
-                                    <p className="text-sm text-zinc-600 dark:text-zinc-400 truncate">{user.lastMessage}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-            </div>
+            {/* Chat Interface */}
+            <Card className="overflow-hidden flex-1 flex flex-col min-h-0 mb-2">
+                <div className="flex flex-1 min-h-0">
+                    {/* Chat List - Left Sidebar */}
+                    <div className="w-80 border-r">
+                        <ChatList
+                            chats={chats}
+                            activeChat={activeChat}
+                            currentUser={user}
+                            loading={loading}
+                            onSelectChat={setActiveChat}
+                            onStartNewChat={handleStartNewChat}
+                        />
+                    </div>
+
+                    {/* Chat Window - Main Area */}
+                    <div className="flex-1">
+                        <ChatWindow
+                            activeChat={activeChat}
+                            messages={messages}
+                            currentUser={user}
+                            loading={loading}
+                            sending={sending}
+                            typingUsers={typingUsers}
+                            onSendMessage={handleSendMessage}
+                            onMarkAsRead={markAsRead}
+                            onTyping={handleSetTyping}
+                        />
+                    </div>
+                </div>
+            </Card>
         </div>
     );
 }

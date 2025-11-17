@@ -101,7 +101,7 @@ export default async function EmployeesPage({ searchParams }: SearchParams) {
             <TableBody>
               {employees.length > 0 &&
                 employees.map((employee, index) => (
-                  <TableRow key={employee.id}>
+                  <TableRow key={employee.uid}>
                     <TableCell>{offsetLimit + (index + 1)}</TableCell>
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
@@ -140,7 +140,7 @@ export default async function EmployeesPage({ searchParams }: SearchParams) {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Link href={`/employees/${employee.id}`}>
+                        <Link href={`/employees/${employee.uid}`}>
                           <Button variant="ghost" size="sm">
                             <Eye className="h-4 w-4" />
                           </Button>

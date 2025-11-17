@@ -40,13 +40,13 @@ export default function EmployeeTableActions({
   const [showToggleDialog, setShowToggleDialog] = useState(false);
 
   const handleEdit = () => {
-    router.push(`/employees/${employee.id}/edit`);
+    router.push(`/employees/${employee.uid}/edit`);
   };
 
   const handleDelete = async () => {
     setIsDeleting(true);
     try {
-      const { success, error } = await deleteEmployee(employee.id.toString());
+      const { success, error } = await deleteEmployee(employee.uid);
 
       if (success) {
         toast.success("Employee deleted successfully");
@@ -68,7 +68,7 @@ export default function EmployeeTableActions({
     setIsToggling(true);
     try {
       const { success, error } = await toggleEmployeeStatus(
-        employee.id.toString(),
+        employee.uid,
         !employee.active
       );
 
