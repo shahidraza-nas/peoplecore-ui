@@ -48,13 +48,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       setError(null);
-      
-      // Set user from session
       setUser({
         id: session.user.id || "",
-        name: session.user.name || "",
+        name: session.user.full_name || "",
         email: session.user.email || "",
-        avatar: session.user.image || undefined,
+        avatar: session.user.profile_image || undefined,
       });
     } catch (err) {
       setError("An error occurred while fetching user details");
@@ -64,7 +62,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, [session, status]);
 
-  // Fetch user on initial mount and when session changes
   useEffect(() => {
     fetchUser();
   }, [fetchUser]);

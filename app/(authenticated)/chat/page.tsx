@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { useChat } from "@/hooks/use-chat";
+import { useSocketContext } from "@/contexts/socket";
 import { ChatList } from "@/components/chat/ChatList";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { Card } from "@/components/ui/card";
@@ -17,6 +18,7 @@ export default function ChatPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user } = useAuth();
+    const { socket } = useSocketContext();
     const [isInitializingChat, setIsInitializingChat] = useState(false);
     const {
         chats,
@@ -33,6 +35,18 @@ export default function ChatPage() {
         createNewChat,
         refreshChats,
     } = useChat(user);
+
+    // Debug socket status
+    useEffect(() => {
+        console.log("=== CHAT PAGE DEBUG ===");
+        console.log("User:", user?.email);
+        console.log("Socket exists:", !!socket);
+        console.log("Socket connected:", socket?.connected);
+        console.log("Socket ID:", socket?.id);
+        console.log("Active chat:", activeChat?.uid);
+        console.log("Messages count:", messages.length);
+        console.log("=======================");
+    }, [socket, user, activeChat, messages.length]);
 
     useEffect(() => {
         const userUid = searchParams.get('user');
@@ -99,12 +113,18 @@ export default function ChatPage() {
                 <Button variant="ghost" size="icon" onClick={() => router.back()}>
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <div>
+                <div className="flex-1">
                     <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
                     <p className="text-muted-foreground">
                         Chat with your team members
                     </p>
                 </div>
+                {/* Socket Status Indicator */}
+                {/* <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    socket?.connected ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                }`}>
+                    {socket?.connected ? 'Connected' : 'Disconnected'}
+                </div> */}
             </div>
 
             {/* Chat Interface */}

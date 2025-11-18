@@ -111,9 +111,10 @@ export function useAuth(): UseAuthReturn {
     setError(null);
 
     try {
-      // logout API
+      const { disconnectSocket } = await import('@/contexts/socket');
+      disconnectSocket();
+
       await API.Post('auth/logout', {});
-      // sign out from NextAuth session
       await signOut({ redirect: false });
       toast.success('Logged out successfully');
       router.push('/login');
@@ -121,7 +122,6 @@ export function useAuth(): UseAuthReturn {
       const apiError = err as ApiError;
       setError(apiError);
       toast.error(apiError.message || 'Logout failed');
-      // Still sign out from NextAuth even if API call fails
       await signOut({ redirect: false });
       router.push('/login');
     }
@@ -160,7 +160,6 @@ export function useAuth(): UseAuthReturn {
     setError(null);
 
     try {
-      // Use NextAuth signIn with email-verify provider for OTP
       const result = await signIn('email-verify', {
         redirect: false,
         session_id: data.session_id,
@@ -205,7 +204,6 @@ export function useAuth(): UseAuthReturn {
 
     try {
       const response = await API.Me<{ user: User }>();
-      // NextAuth session will be updated automatically
       router.refresh();
     } catch (err) {
       const apiError = err as ApiError;

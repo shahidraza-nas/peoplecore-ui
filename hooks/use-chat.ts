@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { connectSocket, disconnectSocket, onMessage, offMessage, onTyping, offTyping, onUserOnline, offUserOnline, onUserOffline, offUserOffline, onOnlineUsersList, offOnlineUsersList, emitMessage, emitTyping, getSocket } from '@/lib/socket';
+import { onMessage, offMessage, onTyping, offTyping, onUserOnline, offUserOnline, onUserOffline, offUserOffline, onOnlineUsersList, offOnlineUsersList, emitMessage, emitTyping, onMessagesRead, offMessagesRead } from '@/lib/socket';
+import { useSocketContext } from '@/contexts/socket';
 import {
     getMyChats,
     getChatMessages,
@@ -29,6 +30,9 @@ export interface UseChatReturn {
 }
 
 export const useChat = (user: User | null): UseChatReturn => {
+
+    const { socket } = useSocketContext();
+    
     const [chats, setChats] = useState<Chat[]>([]);
     const [activeChat, setActiveChat] = useState<Chat | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -43,45 +47,36 @@ export const useChat = (user: User | null): UseChatReturn => {
     const isLoadingMessages = useRef(false);
     const chatsLoaded = useRef(false);
 
+    // CRITICAL DEBUG - Check socket on every render
+    console.log('🚨 [useChat] RENDER - Socket:', !!socket, 'Connected:', socket?.connected, 'ID:', socket?.id);
+
+    // Socket is now managed by SocketProvider - no need to connect/disconnect here
     useEffect(() => {
-        if (!user) return;
-        const token = (user as any)?.accessToken;
-        if (!token) {
-            console.error('No access token found in user session:', {
-                hasUser: !!user,
-                userId: user?.id,
-                userKeys: Object.keys(user || {}),
-            });
-            toast.error('Authentication error - please login again');
+        console.log('[useChat] Message listener effect - socket:', !!socket, 'connected:', socket?.connected, 'activeChat:', activeChat?.uid);
+        
+        if (!socket) {
+            console.warn('[useChat] No socket available for message listening');
             return;
         }
 
-        console.log('Connecting to chat socket');
-        try {
-            const socket = connectSocket(token);
-            console.log('Socket initialized, connected:', socket?.connected);
-        } catch (error) {
-            console.error('Failed to initialize chat socket:', error);
-            toast.error('Failed to connect to chat service');
-        }
-
-        return () => {
-            disconnectSocket();
-        };
-    }, [user]);
-
-    useEffect(() => {
         const handleNewMessage = (data: { message: ChatMessage }) => {
+            console.log('[useChat] ✅ RECEIVED NEW MESSAGE:', data.message);
             const newMessage = data.message;
 
             if (activeChat && newMessage.chatId === activeChat.id) {
+                console.log('[useChat] Message is for active chat, adding to messages');
                 setMessages((prev) => {
                     if (prev.some((m) => m.uid === newMessage.uid)) {
+                        console.log('[useChat] Message already exists, skipping');
                         return prev;
                     }
+                    console.log('[useChat] Adding message to state');
                     return [...prev, newMessage];
                 });
+            } else {
+                console.log('[useChat] Message is NOT for active chat:', { messageChat: newMessage.chatId, activeChat: activeChat?.id });
             }
+            
             setChats((prevChats) => {
                 const updatedChats = prevChats.map((chat) => {
                     if (chat.id === newMessage.chatId) {
@@ -101,22 +96,26 @@ export const useChat = (user: User | null): UseChatReturn => {
             });
         };
 
-        onMessage(handleNewMessage);
+        console.log('[useChat] Attaching message listener');
+        onMessage(socket, handleNewMessage);
 
         return () => {
-            offMessage(handleNewMessage);
+            console.log('[useChat] Cleaning up message listener');
+            offMessage(socket, handleNewMessage);
         };
-    }, [activeChat]);
+    }, [socket, activeChat]);
 
     useEffect(() => {
+        if (!socket) return;
+
         const handleTyping = (data: { userId: number; chatUid: string; isTyping: boolean }) => {
-            console.log('Received typing event:', data, 'activeChat:', activeChat?.uid, 'matches:', activeChat && data.chatUid === activeChat.uid);
+            console.log('[useChat] Received typing event:', data);
             if (activeChat && data.chatUid === activeChat.uid) {
                 setTypingUsers((prev) => {
                     const newSet = new Set(prev);
                     if (data.isTyping) {
                         newSet.add(data.userId);
-                        console.log('Added user to typing set:', data.userId, 'Total:', newSet.size);
+                        console.log('[useChat] User typing:', data.userId);
                         if (typingTimeoutRef.current[data.userId]) {
                             clearTimeout(typingTimeoutRef.current[data.userId]);
                         }
@@ -124,13 +123,11 @@ export const useChat = (user: User | null): UseChatReturn => {
                             setTypingUsers((s) => {
                                 const updated = new Set(s);
                                 updated.delete(data.userId);
-                                console.log('Auto-removed typing (timeout):', data.userId);
                                 return updated;
                             });
                         }, 3000);
                     } else {
                         newSet.delete(data.userId);
-                        console.log('Removed from typing set:', data.userId);
                         if (typingTimeoutRef.current[data.userId]) {
                             clearTimeout(typingTimeoutRef.current[data.userId]);
                         }
@@ -140,56 +137,58 @@ export const useChat = (user: User | null): UseChatReturn => {
             }
         };
 
-        onTyping(handleTyping);
+        onTyping(socket, handleTyping);
 
         return () => {
-            offTyping(handleTyping);
+            offTyping(socket, handleTyping);
             Object.values(typingTimeoutRef.current).forEach(clearTimeout);
         };
-    }, [activeChat]);
+    }, [socket, activeChat]);
 
+    // Listen for online/offline events - pass socket from context
     useEffect(() => {
+        if (!socket) return;
+
         const handleUserOnline = (data: { userId: number }) => {
-            console.log('USER CAME ONLINE:', data.userId);
+            console.log('[useChat] User came online:', data.userId);
             setOnlineUsers((prev) => {
                 const newSet = new Set(prev);
                 newSet.add(data.userId);
-                console.log('Current online users:', Array.from(newSet));
                 return newSet;
             });
         };
 
         const handleUserOffline = (data: { userId: number }) => {
-            console.log('USER WENT OFFLINE:', data.userId);
+            console.log('[useChat] User went offline:', data.userId);
             setOnlineUsers((prev) => {
                 const newSet = new Set(prev);
                 newSet.delete(data.userId);
-                console.log('Current online users:', Array.from(newSet));
                 return newSet;
             });
         };
 
         const handleOnlineUsersList = (data: { userIds: number[] }) => {
-            console.log('RECEIVED INITIAL ONLINE USERS LIST:', data.userIds);
+            console.log('[useChat] Received online users list:', data.userIds);
             setOnlineUsers(new Set(data.userIds));
-            console.log('Set online users to:', data.userIds);
         };
 
-        console.log('Setting up online/offline listeners');
-        onUserOnline(handleUserOnline);
-        onUserOffline(handleUserOffline);
-        onOnlineUsersList(handleOnlineUsersList);
+        onUserOnline(socket, handleUserOnline);
+        onUserOffline(socket, handleUserOffline);
+        onOnlineUsersList(socket, handleOnlineUsersList);
 
         return () => {
-            offUserOnline(handleUserOnline);
-            offUserOffline(handleUserOffline);
-            offOnlineUsersList(handleOnlineUsersList);
+            offUserOnline(socket, handleUserOnline);
+            offUserOffline(socket, handleUserOffline);
+            offOnlineUsersList(socket, handleOnlineUsersList);
         };
-    }, []);
+    }, [socket]);
 
+    // Listen for messages read events - pass socket from context
     useEffect(() => {
+        if (!socket) return;
+
         const handleMessagesRead = (data: { chatUid: string; readBy: number }) => {
-            console.log('Messages marked as read:', data);
+            console.log('[useChat] Messages marked as read:', data);
             if (activeChat && data.chatUid === activeChat.uid) {
                 setMessages((prev) =>
                     prev.map((msg) => ({ ...msg, isRead: true }))
@@ -207,13 +206,12 @@ export const useChat = (user: User | null): UseChatReturn => {
             );
         };
 
-        const { onMessagesRead, offMessagesRead } = require('@/lib/socket');
-        onMessagesRead(handleMessagesRead);
+        onMessagesRead(socket, handleMessagesRead);
 
         return () => {
-            offMessagesRead(handleMessagesRead);
+            offMessagesRead(socket, handleMessagesRead);
         };
-    }, [activeChat]);
+    }, [socket, activeChat]);
 
     const loadChats = useCallback(async () => {
         if (!user || isLoadingChats.current) return;
@@ -318,17 +316,19 @@ export const useChat = (user: User | null): UseChatReturn => {
                 });
             }
             
-            // Optionally emit via socket for instant feedback
-            const socket = getSocket();
+            // Emit via socket for real-time delivery
             if (socket?.connected) {
-                emitMessage({ toUserUid, message: message.trim() });
+                console.log('[useChat] Emitting message via socket');
+                emitMessage(socket, { toUserUid, message: message.trim() });
+            } else {
+                console.warn('[useChat] Socket not connected, message sent via API only');
             }
         } catch (error) {
             toast.error('Failed to send message');
         } finally {
             setSending(false);
         }
-    }, [user]);
+    }, [user, socket]);
 
     // Load more messages (pagination)
     const loadMoreMessages = useCallback(async () => {
@@ -353,10 +353,12 @@ export const useChat = (user: User | null): UseChatReturn => {
         await loadChats();
     }, [loadChats]);
 
-    // Set typing indicator
+    // Set typing indicator - pass socket from context
     const setTyping = useCallback((toUserId: number, isTyping: boolean, chatUid: string) => {
-        emitTyping({ toUserId, isTyping, chatUid });
-    }, []);
+        if (socket?.connected) {
+            emitTyping(socket, { toUserId, isTyping, chatUid });
+        }
+    }, [socket]);
 
     // Create new chat
     const createNewChat = useCallback(async (userUid: string): Promise<Chat | null> => {

@@ -1,167 +1,136 @@
-import { io, Socket } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
 
-let socket: Socket | null = null;
-
-export const connectSocket = (token: string): Socket => {
-    if (socket?.connected) {
-        return socket;
-    }
-
-    const url = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
-    socket = io(url, {
-        query: { token },
-        transports: ['websocket'],
-        reconnection: true,
-        reconnectionDelay: 1000,
-        reconnectionAttempts: 5,
-        autoConnect: true,
-    });
-
-    socket.on('connect', () => {
-        console.log('Socket connected:', socket?.id);
-        socket?.emit('getOnlineUsers');
-    });
-
-    socket.on('disconnect', (reason) => {
-        console.log('Socket disconnected:', reason);
-    });
-
-    socket.on('connect_error', (error: any) => {
-        console.log(error)
-        // console.error('Socket connection error:', {
-        //     message: error.message,
-        //     description: error.description,
-        //     context: error.context,
-        //     type: error.type,
-        //     data: error.data,
-        // });
-
-        const errorMsg = error.message?.toLowerCase() || '';
-        if (
-            errorMsg.includes('jwt expired') ||
-            errorMsg.includes('invalid token') ||
-            errorMsg.includes('authentication failed') ||
-            errorMsg.includes('token validation failed')
-        ) {
-            console.error('Token expired or invalid - redirecting to login');
-            socket?.disconnect();
-            socket = null;
-            if (typeof window !== 'undefined') {
-                window.location.href = '/login';
-            }
-        }
-    });
-
-    socket.on('error', (error: any) => {
-        console.error('Socket error:', error);
-    });
-
-    return socket;
+export const connectSocket = (token: string): Socket | null => {
+    console.warn('[lib/socket] connectSocket is deprecated - use SocketProvider context');
+    return null;
 };
 
 export const disconnectSocket = () => {
-    if (socket) {
-        socket.disconnect();
-        socket = null;
-    }
+    console.warn('[lib/socket] disconnectSocket is deprecated - use context disconnectSocket');
 };
 
 export const getSocket = (): Socket | null => {
-    return socket;
+    console.warn('[lib/socket] getSocket is deprecated - use useSocketContext hook');
+    return null;
 };
 
-// Event emitters
-export const emitMessage = (data: { toUserUid: string; message: string }) => {
-    socket?.emit('user.message', data);
+// Event emitters - these now require socket to be passed from context
+export const emitMessage = (socket: Socket | null, data: { toUserUid: string; message: string }) => {
+    if (!socket?.connected) {
+        console.warn('[lib/socket] Cannot emit message - socket not connected');
+        return;
+    }
+    socket.emit('user.message', data);
 };
 
-export const emitTyping = (data: { toUserId: number; isTyping: boolean; chatUid: string }) => {
-    console.log('Emitting typing event:', data, 'Socket connected:', socket?.connected);
-    socket?.emit('user.typing', data);
+export const emitTyping = (socket: Socket | null, data: { toUserId: number; isTyping: boolean; chatUid: string }) => {
+    if (!socket?.connected) {
+        console.warn('[lib/socket] Cannot emit typing - socket not connected');
+        return;
+    }
+    console.log('[lib/socket] Emitting typing event:', data);
+    socket.emit('user.typing', data);
 };
 
-// Event listeners
-export const onMessage = (callback: (data: any) => void) => {
-    socket?.on('user.message', callback);
+// Event listeners - these now require socket to be passed from context
+export const onMessage = (socket: Socket | null, callback: (data: any) => void) => {
+    if (!socket) {
+        console.warn('[lib/socket] Cannot listen to messages - no socket');
+        return;
+    }
+    socket.on('user.message', callback);
 };
 
-export const onTyping = (callback: (data: any) => void) => {
-    socket?.on('user.typing', (data) => {
-        console.log('Socket received typing event:', data);
+export const onTyping = (socket: Socket | null, callback: (data: any) => void) => {
+    if (!socket) {
+        console.warn('[lib/socket] Cannot listen to typing - no socket');
+        return;
+    }
+    socket.on('user.typing', (data) => {
+        console.log('[lib/socket] Received typing event:', data);
         callback(data);
     });
 };
 
-export const onUserOnline = (callback: (data: { userId: number }) => void) => {
-    socket?.on('user.online', (data) => {
-        console.log('User came online:', data);
+export const onUserOnline = (socket: Socket | null, callback: (data: { userId: number }) => void) => {
+    if (!socket) return;
+    socket.on('user.online', (data) => {
+        console.log('[lib/socket] User came online:', data);
         callback(data);
     });
 };
 
-export const onUserOffline = (callback: (data: { userId: number }) => void) => {
-    socket?.on('user.offline', (data) => {
-        console.log('User went offline:', data);
+export const onUserOffline = (socket: Socket | null, callback: (data: { userId: number }) => void) => {
+    if (!socket) return;
+    socket.on('user.offline', (data) => {
+        console.log('[lib/socket] User went offline:', data);
         callback(data);
     });
 };
 
-export const onOnlineUsersList = (callback: (data: { userIds: number[] }) => void) => {
-    socket?.on('onlineUsers.list', (data) => {
-        console.log('Received online users list:', data);
+export const onOnlineUsersList = (socket: Socket | null, callback: (data: { userIds: number[] }) => void) => {
+    if (!socket) return;
+    socket.on('onlineUsers.list', (data) => {
+        console.log('[lib/socket] Received online users list:', data);
         callback(data);
     });
 };
 
-export const offMessage = (callback?: (data: any) => void) => {
+export const offMessage = (socket: Socket | null, callback?: (data: any) => void) => {
+    if (!socket) return;
     if (callback) {
-        socket?.off('user.message', callback);
+        socket.off('user.message', callback);
     } else {
-        socket?.off('user.message');
+        socket.off('user.message');
     }
 };
 
-export const offTyping = (callback?: (data: any) => void) => {
+export const offTyping = (socket: Socket | null, callback?: (data: any) => void) => {
+    if (!socket) return;
     if (callback) {
-        socket?.off('user.typing', callback);
+        socket.off('user.typing', callback);
     } else {
-        socket?.off('user.typing');
+        socket.off('user.typing');
     }
 };
 
-export const offUserOnline = (callback?: (data: any) => void) => {
+export const offUserOnline = (socket: Socket | null, callback?: (data: any) => void) => {
+    if (!socket) return;
     if (callback) {
-        socket?.off('user.online', callback);
+        socket.off('user.online', callback);
     } else {
-        socket?.off('user.online');
+        socket.off('user.online');
     }
 };
 
-export const offUserOffline = (callback?: (data: any) => void) => {
+export const offUserOffline = (socket: Socket | null, callback?: (data: any) => void) => {
+    if (!socket) return;
     if (callback) {
-        socket?.off('user.offline', callback);
+        socket.off('user.offline', callback);
     } else {
-        socket?.off('user.offline');
+        socket.off('user.offline');
     }
 };
 
-export const offOnlineUsersList = (callback?: (data: any) => void) => {
+export const offOnlineUsersList = (socket: Socket | null, callback?: (data: any) => void) => {
+    if (!socket) return;
     if (callback) {
-        socket?.off('onlineUsers.list', callback);
+        socket.off('onlineUsers.list', callback);
     } else {
-        socket?.off('onlineUsers.list');
+        socket.off('onlineUsers.list');
     }
 };
 
-export const onMessagesRead = (callback: (data: { chatUid: string; readBy: number }) => void) => {
-    socket?.on('messages.read', callback);
+export const onMessagesRead = (socket: Socket | null, callback: (data: { chatUid: string; readBy: number }) => void) => {
+    if (!socket) return;
+    socket.on('messages.read', callback);
 };
 
-export const offMessagesRead = (callback?: (data: any) => void) => {
+export const offMessagesRead = (socket: Socket | null, callback?: (data: any) => void) => {
+    if (!socket) return;
     if (callback) {
-        socket?.off('messages.read', callback);
+        socket.off('messages.read', callback);
     } else {
-        socket?.off('messages.read');
+        socket.off('messages.read');
     }
 };
