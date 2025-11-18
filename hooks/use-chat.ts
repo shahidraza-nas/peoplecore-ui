@@ -32,7 +32,7 @@ export interface UseChatReturn {
 export const useChat = (user: User | null): UseChatReturn => {
 
     const { socket } = useSocketContext();
-    
+
     const [chats, setChats] = useState<Chat[]>([]);
     const [activeChat, setActiveChat] = useState<Chat | null>(null);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -47,20 +47,18 @@ export const useChat = (user: User | null): UseChatReturn => {
     const isLoadingMessages = useRef(false);
     const chatsLoaded = useRef(false);
 
-    // CRITICAL DEBUG - Check socket on every render
-    console.log('🚨 [useChat] RENDER - Socket:', !!socket, 'Connected:', socket?.connected, 'ID:', socket?.id);
+    console.log('[useChat] RENDER - Socket:', !!socket, 'Connected:', socket?.connected, 'ID:', socket?.id);
 
-    // Socket is now managed by SocketProvider - no need to connect/disconnect here
     useEffect(() => {
         console.log('[useChat] Message listener effect - socket:', !!socket, 'connected:', socket?.connected, 'activeChat:', activeChat?.uid);
-        
+
         if (!socket) {
             console.warn('[useChat] No socket available for message listening');
             return;
         }
 
         const handleNewMessage = (data: { message: ChatMessage }) => {
-            console.log('[useChat] ✅ RECEIVED NEW MESSAGE:', data.message);
+            console.log('[useChat] RECEIVED NEW MESSAGE:', data.message);
             const newMessage = data.message;
 
             if (activeChat && newMessage.chatId === activeChat.id) {
@@ -76,7 +74,7 @@ export const useChat = (user: User | null): UseChatReturn => {
             } else {
                 console.log('[useChat] Message is NOT for active chat:', { messageChat: newMessage.chatId, activeChat: activeChat?.id });
             }
-            
+
             setChats((prevChats) => {
                 const updatedChats = prevChats.map((chat) => {
                     if (chat.id === newMessage.chatId) {
@@ -145,7 +143,6 @@ export const useChat = (user: User | null): UseChatReturn => {
         };
     }, [socket, activeChat]);
 
-    // Listen for online/offline events - pass socket from context
     useEffect(() => {
         if (!socket) return;
 
@@ -183,7 +180,6 @@ export const useChat = (user: User | null): UseChatReturn => {
         };
     }, [socket]);
 
-    // Listen for messages read events - pass socket from context
     useEffect(() => {
         if (!socket) return;
 
@@ -198,9 +194,9 @@ export const useChat = (user: User | null): UseChatReturn => {
                 prev.map((chat) =>
                     chat.uid === data.chatUid
                         ? {
-                              ...chat,
-                              messages: chat.messages?.map((msg) => ({ ...msg, isRead: true })),
-                          }
+                            ...chat,
+                            messages: chat.messages?.map((msg) => ({ ...msg, isRead: true })),
+                        }
                         : chat
                 )
             );
@@ -297,8 +293,6 @@ export const useChat = (user: User | null): UseChatReturn => {
                 toast.error('Failed to send message');
                 return;
             }
-
-            // Update chat order after sending message
             const sentMessage = response.data?.message;
             if (sentMessage) {
                 setChats((prevChats) => {
@@ -307,7 +301,6 @@ export const useChat = (user: User | null): UseChatReturn => {
                             ? { ...chat, messages: [sentMessage], updated_at: sentMessage.created_at }
                             : chat
                     );
-                    // Sort by most recent
                     return updatedChats.sort((a, b) => {
                         const aTime = a.messages?.[0]?.created_at || a.updated_at || a.created_at;
                         const bTime = b.messages?.[0]?.created_at || b.updated_at || b.created_at;
@@ -315,8 +308,7 @@ export const useChat = (user: User | null): UseChatReturn => {
                     });
                 });
             }
-            
-            // Emit via socket for real-time delivery
+
             if (socket?.connected) {
                 console.log('[useChat] Emitting message via socket');
                 emitMessage(socket, { toUserUid, message: message.trim() });
@@ -330,13 +322,11 @@ export const useChat = (user: User | null): UseChatReturn => {
         }
     }, [user, socket]);
 
-    // Load more messages (pagination)
     const loadMoreMessages = useCallback(async () => {
         if (!hasMore || loading) return;
         await loadMessages(messageOffset + 50);
     }, [hasMore, loading, messageOffset, loadMessages]);
 
-    // Mark chat as read
     const markAsRead = useCallback(async (chatUid: string) => {
         try {
             await markChatAsRead(chatUid);
@@ -348,26 +338,22 @@ export const useChat = (user: User | null): UseChatReturn => {
         }
     }, [activeChat]);
 
-    // Refresh chats
     const refreshChats = useCallback(async () => {
         await loadChats();
     }, [loadChats]);
-
-    // Set typing indicator - pass socket from context
     const setTyping = useCallback((toUserId: number, isTyping: boolean, chatUid: string) => {
         if (socket?.connected) {
             emitTyping(socket, { toUserId, isTyping, chatUid });
         }
     }, [socket]);
 
-    // Create new chat
     const createNewChat = useCallback(async (userUid: string): Promise<Chat | null> => {
         try {
-            console.log('🟢 useChat: Creating new chat with userUid:', userUid);
+            console.log('useChat: Creating new chat with userUid:', userUid);
             const { createChat } = await import('@/actions/chat.action');
             const response = await createChat(userUid);
 
-            console.log('🟢 useChat: Create chat response:', {
+            console.log('useChat: Create chat response:', {
                 success: response.success,
                 hasData: !!response.data,
                 hasChat: !!response.data?.chat,
@@ -376,25 +362,25 @@ export const useChat = (user: User | null): UseChatReturn => {
             });
 
             if (!response.success || response.error) {
-                const errorMsg = typeof response.error === 'string' 
-                    ? response.error 
+                const errorMsg = typeof response.error === 'string'
+                    ? response.error
                     : response.error?.message || 'Failed to create chat';
-                console.error('❌ useChat: Chat creation failed:', errorMsg);
+                console.error('useChat: Chat creation failed:', errorMsg);
                 toast.error(errorMsg);
                 return null;
             }
 
             const chat = response.data?.chat || null;
             if (!chat) {
-                console.error('❌ useChat: No chat in response data');
+                console.error('useChat: No chat in response data');
                 toast.error('Invalid response from server');
                 return null;
             }
-            
-            console.log('✅ useChat: Chat created successfully:', chat?.uid);
+
+            console.log('useChat: Chat created successfully:', chat?.uid);
             return chat;
         } catch (error) {
-            console.error('❌ useChat: Exception creating chat:', error);
+            console.error('useChat: Exception creating chat:', error);
             const errorMsg = error instanceof Error ? error.message : 'Failed to create chat';
             toast.error(errorMsg);
             return null;
