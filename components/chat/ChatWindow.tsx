@@ -128,7 +128,7 @@ export function ChatWindow({
     return (
         <div className="flex h-full flex-col min-h-0">
             {/* Header */}
-            <div className="flex items-center gap-3 border-b bg-background px-6 py-4 flex-shrink-0">
+            <div className="flex items-center gap-3 border-b px-6 py-3 flex-shrink-0">
                 <div className="relative">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                         <span className="text-sm font-semibold text-primary">
@@ -181,7 +181,7 @@ export function ChatWindow({
                 )}
             </ScrollArea>
 
-            <div className="border-t p-4 flex-shrink-0 bg-background">
+            <div className="border-t p-4 flex-shrink-0">
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();
@@ -196,7 +196,7 @@ export function ChatWindow({
                         onKeyPress={handleKeyPress}
                         placeholder="Type a message..."
                         disabled={sending}
-                        className="flex-1 rounded-full px-4 h-11 bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 focus-visible:ring-primary"
+                        className="flex-1 rounded-full px-4 h-11 bg-zinc-100 dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 focus-visible:ring-primary"
                         autoComplete="off"
                     />
                     <Button

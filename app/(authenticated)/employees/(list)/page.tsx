@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, Plus } from "lucide-react";
 import EmployeeFilter from "../(components)/EmployeeFilter";
 import EmployeeTableActions from "../(components)/EmployeeTableActions";
+import EmployeePagination from "../(components)/EmployeePagination";
 import NoData from "@/components/no-data";
 
 interface SearchParams {
@@ -30,9 +31,9 @@ interface SearchParams {
 export default async function EmployeesPage({ searchParams }: SearchParams) {
   const { page: queryPage, q, sort, role, active } = await searchParams;
 
-  const offset = queryPage && !isNaN(queryPage) ? +queryPage - 1 : 0;
+  const currentPage = queryPage && !isNaN(queryPage) ? +queryPage : 1;
   const limit = 10;
-  const offsetLimit = offset * limit;
+  const offset = (currentPage - 1) * limit;
 
   let sortArr: string[] = [];
 
@@ -44,7 +45,7 @@ export default async function EmployeesPage({ searchParams }: SearchParams) {
 
   const result = await listEmployees({
     limit,
-    offset: offsetLimit,
+    offset,
     sort:
       sortArr.length === 2
         ? { field: sortArr[0], order: sortArr[1] }
@@ -61,6 +62,8 @@ export default async function EmployeesPage({ searchParams }: SearchParams) {
     employees = result.data.users || [];
     totalRows = result.data.count || 0;
   }
+
+  const totalPages = Math.ceil(totalRows / limit);
 
   return (
     <div className="space-y-6">
@@ -86,77 +89,85 @@ export default async function EmployeesPage({ searchParams }: SearchParams) {
       {/* Table Section */}
       <div className="rounded-xl border bg-card p-6">
         <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>S.No</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {employees.length > 0 &&
-                employees.map((employee, index) => (
-                  <TableRow key={employee.uid}>
-                    <TableCell>{offsetLimit + (index + 1)}</TableCell>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={employee.avatar || (employee as any).profile_image || undefined} />
-                          <AvatarFallback>
-                            {(employee.first_name || (employee as any).full_name || 'U')?.[0]}
-                            {(employee.last_name || '')?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span>
-                          {(employee as any).full_name || `${employee.first_name || ''} ${employee.last_name || ''}`.trim() || 'Unknown'}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{employee.email}</TableCell>
-                    <TableCell>
-                      {employee.phone_code && employee.phone
-                        ? `${employee.phone_code} ${employee.phone}`
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{employee.role}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={employee.active ? "default" : "destructive"}
-                      >
-                        {employee.active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {employee.created_at
-                        ? new Date(employee.created_at).toLocaleDateString()
-                        : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Link href={`/employees/${employee.uid}`}>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </Link>
-                        <EmployeeTableActions employee={employee} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>S.No</TableHead>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Joined</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {employees.length > 0 &&
+              employees.map((employee, index) => (
+                <TableRow key={employee.uid}>
+                  <TableCell>{offset + (index + 1)}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage
+                          src={employee.avatar || undefined}
+                          alt={`${employee.first_name || ''} ${employee.last_name || ''}`.trim()}
+                        />
+                        <AvatarFallback className="text-xs font-semibold">
+                          {(employee.first_name || 'U')?.[0]?.toUpperCase()}
+                          {(employee.last_name || '')?.[0]?.toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>
+                        {`${employee.first_name || ''} ${employee.last_name || ''}`.trim() || 'Unknown'}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>{employee.email}</TableCell>
+                  <TableCell>
+                    {employee.phone_code && employee.phone
+                      ? `${employee.phone_code} ${employee.phone}`
+                      : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{employee.role}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={employee.active ? "default" : "destructive"}
+                    >
+                      {employee.active ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {employee.created_at
+                      ? new Date(employee.created_at).toLocaleDateString()
+                      : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Link href={`/employees/${employee.uid}`}>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      <EmployeeTableActions employee={employee} />
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
         {(!employees || employees.length === 0) && (
           <NoData
             title="No Employees Found"
             description="No employees match your search criteria"
           />
+        )}
+
+        {/* Pagination */}
+        {employees.length > 0 && (
+          <EmployeePagination currentPage={currentPage} totalPages={totalPages} />
         )}
       </div>
     </div>

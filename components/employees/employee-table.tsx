@@ -55,7 +55,7 @@ export default function EmployeeTable({ employees, onEdit, onDelete }: EmployeeT
               <TableCell>
                 <div className="flex items-center gap-3">
                   <Avatar>
-                    <AvatarImage src={employee.avatar} />
+                    <AvatarImage src={employee.avatar || undefined} />
                     <AvatarFallback>
                       {employee.first_name[0]}{employee.last_name[0]}
                     </AvatarFallback>

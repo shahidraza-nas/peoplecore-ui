@@ -29,22 +29,23 @@ export async function listEmployees(filter: EmployeeFilter): Promise<{
   try {
     const { sort, search, limit, offset, role, active } = filter;
 
-    const query: any = {
-      search: search || "",
-      limit: limit || 10,
-      offset: offset || 0,
-      data: {},
-    };
+    const where: Record<string, unknown> = {};
 
     if (role) {
-      query.data.role = role;
+      where.role = role;
     }
 
     if (active !== undefined) {
-      query.data.active = active;
+      where.active = active;
     }
 
-    const response = await API.GetAll<any>("user", query);
+    const response = await API.GetAll<any>("user", {
+      search: search || undefined,
+      limit: limit || 10,
+      offset: offset || 0,
+      where: Object.keys(where).length > 0 ? where : undefined,
+      sort: sort ? [[sort.field, sort.order]] : undefined,
+    });
 
     if (response.error) {
       return { success: false, error: response.error };
@@ -92,17 +93,26 @@ export async function getEmployeeById(uid: string): Promise<{
 export async function createEmployee(employeeData: Partial<User>): Promise<{
   success: boolean;
   data?: { user: User };
-  error?: any;
+  error?: string;
 }> {
   try {
-    const { data, error } = await API.Create<Partial<User>, { user: User }>(
+    const { data, error, message, validationErrors } = await API.Create<Partial<User>, { user: User }>(
       "user",
       employeeData
     );
 
-    if (error) return { success: false, error };
+    if (error) {
+      // Handle validation errors
+      if (validationErrors && validationErrors.length > 0) {
+        const firstError = validationErrors[0];
+        const errorMessage = Object.values(firstError.constraints || {})[0] || "Validation failed";
+        return { success: false, error: errorMessage };
+      }
+      // Handle generic error message
+      const errorMessage = typeof error === 'string' ? error : (message || "Failed to create employee");
+      return { success: false, error: errorMessage };
+    }
 
-    // Revalidate employees page
     revalidatePath("/employees");
 
     return { success: true, data };
@@ -121,18 +131,27 @@ export async function updateEmployee(
 ): Promise<{
   success: boolean;
   data?: { user: User };
-  error?: any;
+  error?: string;
 }> {
   try {
-    const { data, error } = await API.UpdateById<Partial<User>, { user: User }>(
+    const { data, error, message, validationErrors } = await API.UpdateById<Partial<User>, { user: User }>(
       "user",
       uid,
       employeeData
     );
 
-    if (error) return { success: false, error };
+    if (error) {
+      // Handle validation errors
+      if (validationErrors && validationErrors.length > 0) {
+        const firstError = validationErrors[0];
+        const errorMessage = Object.values(firstError.constraints || {})[0] || "Validation failed";
+        return { success: false, error: errorMessage };
+      }
+      // Handle generic error message
+      const errorMessage = typeof error === 'string' ? error : (message || "Failed to update employee");
+      return { success: false, error: errorMessage };
+    }
 
-    // Revalidate employees pages
     revalidatePath("/employees");
     revalidatePath(`/employees/${uid}`);
     revalidatePath(`/employees/edit/${uid}`);
@@ -149,14 +168,16 @@ export async function updateEmployee(
  */
 export async function deleteEmployee(uid: string): Promise<{
   success: boolean;
-  error?: any;
+  error?: string;
 }> {
   try {
-    const { error } = await API.DeleteById("user", uid);
+    const { error, message } = await API.DeleteById("user", uid);
 
-    if (error) return { success: false, error };
+    if (error) {
+      const errorMessage = typeof error === 'string' ? error : (message || "Failed to delete employee");
+      return { success: false, error: errorMessage };
+    }
 
-    // Revalidate employees page
     revalidatePath("/employees");
 
     return { success: true };
@@ -175,18 +196,20 @@ export async function toggleEmployeeStatus(
 ): Promise<{
   success: boolean;
   data?: { user: User };
-  error?: any;
+  error?: string;
 }> {
   try {
-    const { data, error} = await API.UpdateById<Partial<User>, { user: User }>(
+    const { data, error, message } = await API.UpdateById<Partial<User>, { user: User }>(
       "user",
       uid,
       { active }
     );
 
-    if (error) return { success: false, error };
+    if (error) {
+      const errorMessage = typeof error === 'string' ? error : (message || "Failed to toggle employee status");
+      return { success: false, error: errorMessage };
+    }
 
-    // Revalidate employees pages
     revalidatePath("/employees");
     revalidatePath(`/employees/${uid}`);
 

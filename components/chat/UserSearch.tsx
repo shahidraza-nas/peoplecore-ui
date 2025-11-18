@@ -149,7 +149,7 @@ export function UserSearch({ currentUser, onSelectUser }: UserSearchProps) {
                     className="flex w-full items-center gap-3 rounded-sm p-2 text-left hover:bg-accent transition-colors"
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarImage src={user.avatar || undefined} alt={user.name} />
                       <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 space-y-1">

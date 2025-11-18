@@ -8,6 +8,7 @@ interface UpdateProfileData {
   last_name?: string;
   phone_code?: string;
   phone?: string;
+  avatar?: string;
   enable_2fa?: boolean;
   send_email?: boolean;
   send_sms?: boolean;
@@ -49,7 +50,7 @@ export function useProfile() {
     try {
       const response = await API.UpdateMe<{ user: User }>(data);
       setUser(response.data?.user || null);
-      
+
       toast.success('Profile updated successfully');
       return response.data?.user || null;
     } catch (err: any) {
@@ -59,10 +60,10 @@ export function useProfile() {
         error: err.response?.data?.error,
       };
       setError(apiError);
-      
+
       if (Array.isArray(apiError.error)) {
-        const messages = apiError.error.map((e: any) => 
-          typeof e === 'object' && e.constraints 
+        const messages = apiError.error.map((e: any) =>
+          typeof e === 'object' && e.constraints
             ? Object.values(e.constraints).join(', ')
             : String(e)
         );
@@ -90,10 +91,10 @@ export function useProfile() {
         error: err.response?.data?.error,
       };
       setError(apiError);
-      
+
       if (Array.isArray(apiError.error)) {
-        const messages = apiError.error.map((e: any) => 
-          typeof e === 'object' && e.constraints 
+        const messages = apiError.error.map((e: any) =>
+          typeof e === 'object' && e.constraints
             ? Object.values(e.constraints).join(', ')
             : String(e)
         );
@@ -111,16 +112,29 @@ export function useProfile() {
     setLoading(true);
     setError(null);
     try {
-      const formData = new FormData();
-      formData.append('avatar', file);
-      const response = await API.Patch('user/me/avatar', formData, undefined, { isMultipart: true });
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const base64String = await base64Promise;
+
+      const { uploadImageToS3 } = await import('@/actions/aws.action');
+      const uploadResult = await uploadImageToS3(base64String, 'avatars');
+
+      if (!uploadResult.success) {
+        throw new Error(uploadResult.error || 'Failed to upload image');
+      }
+      const response = await API.UpdateMe<{ user: User }>({ avatar: uploadResult.url } as UpdateProfileData);
       setUser(response.data?.user || null);
-      
+
       toast.success('Avatar updated successfully');
       return response.data?.user || null;
     } catch (err: any) {
       const apiError: ApiError = {
-        message: err.response?.data?.message || 'Failed to upload avatar',
+        message: err.message || err.response?.data?.message || 'Failed to upload avatar',
         statusCode: err.response?.status,
         error: err.response?.data?.error,
       };

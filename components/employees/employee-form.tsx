@@ -6,8 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Eye, EyeOff, Loader2, Upload, X } from "lucide-react";
 import { Role, CreateEmployeeData } from "@/lib/types";
+import { uploadImageToS3 } from "@/actions/aws.action";
+import toast from "react-hot-toast";
 
 interface EmployeeFormProps {
   employee?: any;
@@ -18,6 +21,9 @@ interface EmployeeFormProps {
 export default function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeFormProps) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(employee?.avatar || null);
+  const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   
   const [formData, setFormData] = useState({
     first_name: employee?.first_name || "",
@@ -31,21 +37,66 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeF
     send_email: employee?.send_email !== false,
   });
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setAvatarPreview(base64String);
+      setAvatarBase64(base64String);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeAvatar = () => {
+    setAvatarPreview(null);
+    setAvatarBase64(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      let avatarUrl: string | undefined;
+
+      // Upload avatar if changed
+      if (avatarBase64) {
+        setUploadingAvatar(true);
+        const uploadResult = await uploadImageToS3(avatarBase64, "avatars");
+        setUploadingAvatar(false);
+
+        if (!uploadResult.success) {
+          toast.error(uploadResult.error || "Failed to upload avatar");
+          setLoading(false);
+          return;
+        }
+
+        avatarUrl = uploadResult.url;
+      }
+
       const submitData = employee
         ? // For update, only send changed fields (excluding password if empty)
           Object.fromEntries(
-            Object.entries(formData).filter(([key, value]) => {
+            Object.entries({ ...formData, ...(avatarUrl ? { avatar: avatarUrl } : {}) }).filter(([key, value]) => {
               if (key === 'password' && !value) return false;
               return value !== employee[key];
             })
           )
-        : // For create, send all data
-          formData;
+        : // For create, send all data including avatar
+          { ...formData, ...(avatarUrl ? { avatar: avatarUrl } : {}) };
 
       await onSubmit(submitData);
     } finally {
@@ -55,6 +106,48 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeF
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Avatar Upload Section */}
+      <div className="flex flex-col items-center space-y-3 pb-4">
+        <Avatar className="h-24 w-24">
+          <AvatarImage src={avatarPreview || undefined} alt="Employee Avatar" />
+          <AvatarFallback className="text-2xl bg-zinc-200 dark:bg-zinc-800">
+            {formData.first_name?.[0]?.toUpperCase() || "E"}
+            {formData.last_name?.[0]?.toUpperCase() || ""}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex gap-2">
+          <Label htmlFor="avatar-upload" className="cursor-pointer">
+            <div className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md text-sm font-medium transition-colors">
+              <Upload className="h-4 w-4" />
+              {avatarPreview ? "Change" : "Upload"} Photo
+            </div>
+            <Input
+              id="avatar-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              disabled={loading || uploadingAvatar}
+              className="hidden"
+            />
+          </Label>
+          {avatarPreview && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={removeAvatar}
+              disabled={loading || uploadingAvatar}
+              className="px-3"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        {avatarBase64 && (
+          <p className="text-xs text-muted-foreground">Image ready to upload</p>
+        )}
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="first_name">First Name *</Label>
@@ -198,17 +291,17 @@ export default function EmployeeForm({ employee, onSubmit, onCancel }: EmployeeF
       </div>
 
       <div className="flex gap-3 pt-4">
-        <Button type="submit" className="flex-1" disabled={loading}>
-          {loading ? (
+        <Button type="submit" className="flex-1" disabled={loading || uploadingAvatar}>
+          {loading || uploadingAvatar ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              {employee ? "Updating..." : "Creating..."}
+              {uploadingAvatar ? "Uploading image..." : employee ? "Updating..." : "Creating..."}
             </>
           ) : (
             <>{employee ? "Update Employee" : "Create Employee"}</>
           )}
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={loading || uploadingAvatar}>
           Cancel
         </Button>
       </div>

@@ -81,7 +81,7 @@ export function ChatList({ chats, activeChat, currentUser, loading, onlineUsers,
                   <div className="flex items-start gap-3">
                     <div className="relative">
                       <Avatar className="h-10 w-10">
-                        <AvatarImage src={otherUser?.avatar} alt={otherUser?.name} />
+                        <AvatarImage src={otherUser?.avatar || undefined} alt={otherUser?.name} />
                         <AvatarFallback>{getInitials(otherUser?.name)}</AvatarFallback>
                       </Avatar>
                       {otherUser && (

@@ -26,7 +26,7 @@ export function Header() {
     return (
         <header className="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md flex items-center justify-center px-6">
             <div className="w-full max-w-6xl flex items-center justify-between">
-                <button 
+                <button
                     onClick={() => router.push("/dashboard")}
                     className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
                 >
@@ -42,12 +42,12 @@ export function Header() {
                         <DropdownMenuTrigger asChild>
                             <div className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity">
                                 <Avatar>
-                                    <AvatarImage 
-                                        src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || user?.first_name || 'User')}`} 
-                                        alt={user?.name || user?.first_name || 'User'} 
+                                    <AvatarImage
+                                        src={user?.avatar || undefined}
+                                        alt={user?.name || user?.first_name || 'User'}
                                     />
-                                    <AvatarFallback>
-                                        {user?.first_name?.[0] || user?.name?.[0] || 'U'}{user?.last_name?.[0] || ''}
+                                    <AvatarFallback className="text-xs font-semibold">
+                                        {(user?.first_name?.[0] || user?.name?.[0] || 'U')?.toUpperCase()}{(user?.last_name?.[0] || '')?.toUpperCase()}
                                     </AvatarFallback>
                                 </Avatar>
                                 <span className="hidden sm:block text-sm font-medium">{user?.first_name || user?.name || 'User'}</span>

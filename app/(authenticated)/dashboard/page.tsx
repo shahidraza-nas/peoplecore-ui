@@ -136,7 +136,7 @@ export default function DashboardPage() {
                                     className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                                 >
                                     <Avatar>
-                                        <AvatarImage src={employee.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(employee.name)}`} />
+                                        <AvatarImage src={employee.avatar || undefined} />
                                         <AvatarFallback>{employee.first_name[0]}{employee.last_name[0]}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1 min-w-0 cursor-pointer" onClick={() => router.push("/employees")}>

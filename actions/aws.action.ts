@@ -3,12 +3,12 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 
+// console.log({
+//     region: process.env.AWS_REGION,
+//     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+//     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+// })
 // Initialize S3 client
-console.log({
-    region: process.env.AWS_REGION,
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-})
 const s3Client = new S3Client({
     region: process.env.AWS_REGION!,
     credentials: {
@@ -64,7 +64,6 @@ export async function uploadImageToS3(
 
         // Upload to S3
         const command = new PutObjectCommand(uploadParams);
-        console.log({ command })
         await s3Client.send(command);
 
         // Construct the URL

@@ -22,83 +22,88 @@ export const SocketContext = createContext<SocketContextType | undefined>(
 
 // Global singleton socket - ensures only ONE socket instance for entire app
 let globalSocket: Socket | null = null;
+let isConnecting = false; 
 
 export default function SocketProvider({ children }: { children: ReactNode }) {
     const [socket, setSocket] = useState<Socket | null>(null);
     const session = useSession();
     const token = session.data?.user?.accessToken;
     const previousToken = useRef<string | undefined>(undefined);
-
-    console.log('[SocketProvider] RENDER - Session status:', session.status, 'Token:', !!token);
+    const mountedRef = useRef(true);
 
     useEffect(() => {
-        console.log('[SocketProvider] Effect triggered - Session status:', session.status, 'Token:', token ? 'present' : 'missing');
+        mountedRef.current = true;
 
         if (session.status === 'loading') {
-            console.log('[SocketProvider] Session still loading, waiting...');
             return;
         }
-        
+
         if (!token) {
-            console.log('[SocketProvider] No token available');
             if (globalSocket) {
-                console.log('[SocketProvider] Cleaning up existing socket due to no token');
                 globalSocket.disconnect();
                 globalSocket = null;
+                isConnecting = false;
                 setSocket(null);
             }
             return;
         }
 
         if (previousToken.current && previousToken.current !== token) {
-            console.log('[SocketProvider] Token changed, disconnecting old socket');
             if (globalSocket) {
                 globalSocket.disconnect();
                 globalSocket = null;
+                isConnecting = false;
             }
         }
 
         previousToken.current = token;
 
-        if (globalSocket) {
-            console.log('[SocketProvider] Reusing existing socket:', globalSocket.id, 'connected:', globalSocket.connected);
-            setSocket(globalSocket);
+        if (globalSocket && globalSocket.connected) {
+            if (mountedRef.current) {
+                setSocket(globalSocket);
+            }
+            return;
+        }
+        if (isConnecting) {
             return;
         }
 
+        isConnecting = true;
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-        console.log('[SocketProvider] Creating new socket connection to:', apiUrl);
-        console.log('[SocketProvider] Token length:', token.length, 'First 20 chars:', token.substring(0, 20));
-        
+
         const socketIO = io(apiUrl, {
             transports: ["websocket"],
             query: { token },
-            reconnection: true,
-            reconnectionDelay: 1000,
-            reconnectionAttempts: 5,
+            reconnection: false,
             autoConnect: true,
         });
 
         socketIO.on('connect', () => {
-            console.log('[SocketProvider] Socket connected successfully! ID:', socketIO.id);
+            isConnecting = false;
+            console.log('[Socket] Connected');
         });
 
         socketIO.on('connect_error', (error) => {
-            console.error('[SocketProvider] Connection error:', error.message);
-            console.error('[SocketProvider] Error details:', error);
+            isConnecting = false;
+            console.error('[Socket] Connection error:', error.message);
         });
 
         socketIO.on('disconnect', (reason) => {
-            console.log('[SocketProvider] Socket disconnected. Reason:', reason);
+            isConnecting = false;
+            console.log('[Socket] Disconnected:', reason);
         });
 
         socketIO.on('error', (error) => {
-            console.error('[SocketProvider] Socket error:', error);
+            console.error('[Socket] Error:', error);
         });
 
         globalSocket = socketIO;
-        setSocket(socketIO);
-        console.log('[SocketProvider] Socket instance created, connecting...');
+        if (mountedRef.current) {
+            setSocket(socketIO);
+        }
+        return () => {
+            mountedRef.current = false;
+        };
     }, [token, session.status]);
 
     const value: SocketContextType = {
@@ -114,12 +119,19 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
 }
 
 export const disconnectSocket = () => {
-    console.log('[SocketProvider] Manual disconnect called');
     if (globalSocket) {
         globalSocket.disconnect();
         globalSocket = null;
+        isConnecting = false;
     }
 };
+
+
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    window.addEventListener('beforeunload', () => {
+        disconnectSocket();
+    });
+}
 
 export const useSocketContext = (): SocketContextType => {
     const context = useContext(SocketContext);
@@ -133,27 +145,23 @@ export function SocketEvents({ socket }: { socket: Socket }) {
     const router = useRouter();
 
     useEffect(() => {
-        console.log('[SocketEvents] Setting up listeners for socket:', socket.id);
-
         const handleConnect = () => {
-            console.log("[Socket] Connected:", socket.id);
             socket.emit('getOnlineUsers');
         };
 
-        const handleDisconnect = (reason: string, details: any) => {
-            console.log("[Socket] Disconnected:", reason, details);
+        const handleDisconnect = (reason: string) => {
             if (reason === "io server disconnect") {
-                console.log("[Socket] Server disconnected, will auto-reconnect...");
+                console.log("[Socket] Server disconnected:", reason);
             }
         };
 
         const handleConnectError = (error: Error) => {
             console.error("[Socket] Connection error:", error.message);
             const errorMessage = error.message.toLowerCase();
-            if (errorMessage.includes('jwt expired') || 
+            if (errorMessage.includes('jwt expired') ||
                 errorMessage.includes('invalid token') ||
-                errorMessage.includes('unauthorized')) {
-                console.error("[Socket] Auth error: Session expired");
+                errorMessage.includes('unauthorized') ||
+                errorMessage.includes('authentication')) {
                 disconnectSocket();
                 router.push('/login?expired=true');
             }
@@ -164,12 +172,10 @@ export function SocketEvents({ socket }: { socket: Socket }) {
         socket.on("connect_error", handleConnectError);
 
         if (socket.connected) {
-            console.log('[SocketEvents] Socket already connected, requesting online users');
             socket.emit('getOnlineUsers');
         }
 
         return () => {
-            console.log('[SocketEvents] Cleaning up listeners');
             socket.off("connect", handleConnect);
             socket.off("disconnect", handleDisconnect);
             socket.off("connect_error", handleConnectError);

@@ -90,7 +90,6 @@ export default function ProfilePage() {
             setPasswordForm({ old_password: '', password: '' });
             setShowPasswordChangedDialog(true);
         } catch (error) {
-            // Error already handled in hook
         }
     };
 
