@@ -161,3 +161,37 @@ export async function searchUsers(query: string): Promise<{
     };
   }
 }
+
+export async function getDashboardStats() {
+  try {
+    const response = await API.DashboardStats<any>();
+
+    if (response.error) {
+      return { 
+        success: false, 
+        error: response.error,
+        statusCode: response.statusCode 
+      };
+    }
+    const recentUsers = (response.data?.recentUsers || []).map((user: any) => normalizeUser(user));
+
+    return {
+      success: true,
+      data: {
+        totalUsers: response.data?.totalUsers || 0,
+        activeUsers: response.data?.activeUsers || 0,
+        adminUsers: response.data?.adminUsers || 0,
+        regularUsers: response.data?.regularUsers || 0,
+        totalChats: response.data?.totalChats || 0,
+        recentUsers,
+      },
+      statusCode: response.statusCode,
+    };
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch dashboard stats",
+    };
+  }
+}

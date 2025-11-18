@@ -35,6 +35,15 @@ export interface User {
     isOnline?: boolean;
 }
 
+export interface DashboardStats {
+    totalUsers: number;
+    activeUsers: number;
+    adminUsers: number;
+    regularUsers: number;
+    totalChats: number;
+    recentUsers: User[];
+}
+
 export interface LoginData {
     username: string;
     password: string;

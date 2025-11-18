@@ -7,23 +7,36 @@ import { Badge } from "@/components/ui/badge";
 import { Users, MessageSquare, UserPlus, TrendingUp, Clock, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { useEmployees } from "@/hooks/use-employees";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { getDashboardStats } from "@/actions/user.action";
+import { DashboardStats } from "@/lib/types";
+import toast from "react-hot-toast";
 
 export default function DashboardPage() {
     const router = useRouter();
     const { user } = useAuth();
-    const { employees, loading, totalCount, fetchEmployees } = useEmployees();
+    const [stats, setStats] = useState<DashboardStats | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchEmployees();
-    }, [fetchEmployees]);
+        async function fetchStats() {
+            setLoading(true);
+            const response = await getDashboardStats();
+            if (response.success && response.data) {
+                setStats(response.data);
+            } else {
+                toast.error("Failed to load dashboard statistics");
+            }
+            setLoading(false);
+        }
+        fetchStats();
+    }, []);
 
-    const stats = [
-        { label: "Total Employees", value: loading ? "..." : totalCount.toString(), change: "Registered", icon: Users, color: "text-blue-600 dark:text-blue-400" },
-        { label: "Active Now", value: employees.filter(e => e.last_login_at).length.toString(), change: "Online recently", icon: TrendingUp, color: "text-green-600 dark:text-green-400" },
-        { label: "Admins", value: employees.filter(e => e.role === 'Admin').length.toString(), change: "Admin users", icon: UserPlus, color: "text-purple-600 dark:text-purple-400" },
-        { label: "Regular Users", value: employees.filter(e => e.role === 'User').length.toString(), change: "Standard access", icon: MessageSquare, color: "text-orange-600 dark:text-orange-400" },
+    const statCards = [
+        { label: "Total Employees", value: loading ? "..." : (stats?.totalUsers || 0).toString(), change: "Registered", icon: Users, color: "text-blue-600 dark:text-blue-400" },
+        { label: "Active Now", value: loading ? "..." : (stats?.activeUsers || 0).toString(), change: "Online recently", icon: TrendingUp, color: "text-green-600 dark:text-green-400" },
+        { label: "Admins", value: loading ? "..." : (stats?.adminUsers || 0).toString(), change: "Admin users", icon: UserPlus, color: "text-purple-600 dark:text-purple-400" },
+        { label: "Regular Users", value: loading ? "..." : (stats?.regularUsers || 0).toString(), change: "Standard access", icon: MessageSquare, color: "text-orange-600 dark:text-orange-400" },
     ];
 
     return (
@@ -38,7 +51,7 @@ export default function DashboardPage() {
 
             {/* Stats Grid */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {stats.map((stat) => (
+                {statCards.map((stat) => (
                     <Card key={stat.label} className="hover:shadow-md transition-shadow">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
                             <CardTitle className="text-sm font-medium text-zinc-600 dark:text-zinc-400">
@@ -111,11 +124,11 @@ export default function DashboardPage() {
                     </Button>
                 </CardHeader>
                 <CardContent>
-                    {loading && employees.length === 0 ? (
+                    {loading ? (
                         <div className="flex items-center justify-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin text-zinc-500" />
                         </div>
-                    ) : employees.length === 0 ? (
+                    ) : !stats?.recentUsers || stats.recentUsers.length === 0 ? (
                         <div className="text-center py-8">
                             <p className="text-zinc-500">No employees found</p>
                             <Button
@@ -130,7 +143,7 @@ export default function DashboardPage() {
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {employees.slice(0, 5).map((employee) => (
+                            {stats.recentUsers.map((employee) => (
                                 <div
                                     key={employee.id}
                                     className="flex items-center gap-4 p-3 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"

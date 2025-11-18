@@ -553,8 +553,31 @@ const Delete = async (
   }
 };
 
+/**
+ * Get dashboard statistics
+ */
+const DashboardStats = async <T>(
+  options?: HttpOptions,
+  requestInit?: RequestInit
+): Promise<ApiResponse<T>> => {
+  try {
+    const response = await fetch(
+      generateQueryUrl('user/dashboard-stats'),
+      {
+        method: "GET",
+        headers: await getHttpOption(options || {}),
+        ...requestInit,
+      }
+    );
+    return responseHandler(response);
+  } catch (error) {
+    return errorHandler(error);
+  }
+};
+
 export const API = {
   Create,
+  DashboardStats,
   Delete,
   DeleteById,
   Find,
