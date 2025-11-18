@@ -1,5 +1,6 @@
 import RegisterForm from "@/components/auth/register-form";
 import { ThemeToggle } from "@/components/theme-toggle";
+import Link from "next/link";
 
 export default function RegisterPage() {
     return (
@@ -7,7 +8,14 @@ export default function RegisterPage() {
             <div className="absolute top-4 right-4">
                 <ThemeToggle />
             </div>
-            <RegisterForm />
+            <div className="w-full max-w-md">
+                <RegisterForm />
+                <div className="mt-4 text-center text-sm">
+                    <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                        ← Back to Home
+                    </Link>
+                </div>
+            </div>
         </div>
     );
 }
