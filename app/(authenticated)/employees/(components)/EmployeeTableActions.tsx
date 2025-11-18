@@ -40,7 +40,7 @@ export default function EmployeeTableActions({
   const [showToggleDialog, setShowToggleDialog] = useState(false);
 
   const handleEdit = () => {
-    router.push(`/employees/${employee.uid}/edit`);
+    router.push(`/employees/edit/${employee.uid}`);
   };
 
   const handleDelete = async () => {

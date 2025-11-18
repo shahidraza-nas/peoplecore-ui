@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Eye, EyeOff, Loader2, Upload, X } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import { uploadImageToS3 } from "@/actions/aws.action";
 
 export default function RegisterForm() {
   const [firstName, setFirstName] = useState("");
@@ -20,14 +22,40 @@ export default function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
   const { register, loading } = useAuth();
   const router = useRouter();
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image size should be less than 5MB");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setAvatarPreview(base64String);
+      setAvatarBase64(base64String);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeAvatar = () => {
+    setAvatarPreview(null);
+    setAvatarBase64(null);
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Client-side validation
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
       return;
@@ -39,6 +67,21 @@ export default function RegisterForm() {
     }
 
     try {
+      let avatarUrl: string | undefined;
+
+      if (avatarBase64) {
+        setUploadingAvatar(true);
+        const uploadResult = await uploadImageToS3(avatarBase64, "avatars");
+        setUploadingAvatar(false);
+
+        if (!uploadResult.success) {
+          toast.error(uploadResult.error || "Failed to upload avatar");
+          return;
+        }
+
+        avatarUrl = uploadResult.url;
+      }
+
       await register({
         first_name: firstName,
         last_name: lastName,
@@ -46,11 +89,10 @@ export default function RegisterForm() {
         password,
         phone_code: phone ? "+1" : undefined,
         phone: phone || undefined,
+        avatar: avatarUrl,
       });
       router.push("/login");
-    } catch (error) {
-      // Error already handled by useAuth hook with toast
-    }
+    } catch (error) { }
   };
 
   return (
@@ -63,6 +105,47 @@ export default function RegisterForm() {
       </CardHeader>
       <form onSubmit={handleRegister}>
         <CardContent className="space-y-4">
+          <div className="flex flex-col items-center space-y-3 pb-2">
+            <Avatar className="h-24 w-24">
+              <AvatarImage src={avatarPreview || undefined} alt="Profile" />
+              <AvatarFallback className="text-2xl bg-zinc-200 dark:bg-zinc-800">
+                {firstName?.[0]?.toUpperCase() || "U"}
+                {lastName?.[0]?.toUpperCase() || ""}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex gap-2">
+              <Label htmlFor="avatar-upload" className="cursor-pointer">
+                <div className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-md text-sm font-medium transition-colors">
+                  <Upload className="h-4 w-4" />
+                  {avatarPreview ? "Change" : "Upload"} Photo
+                </div>
+                <Input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  disabled={loading || uploadingAvatar}
+                  className="hidden"
+                />
+              </Label>
+              {avatarPreview && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={removeAvatar}
+                  disabled={loading || uploadingAvatar}
+                  className="px-3"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            {avatarPreview && (
+              <p className="text-xs text-muted-foreground">Image ready to upload</p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName" className="text-sm font-medium">First Name</Label>
@@ -91,7 +174,7 @@ export default function RegisterForm() {
               />
             </div>
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
             <Input
@@ -121,7 +204,7 @@ export default function RegisterForm() {
               className="h-11 transition-all"
             />
           </div>
-          
+
           <div className="space-y-2">
             <Label htmlFor="password" className="text-sm font-medium">Password</Label>
             <div className="relative">
@@ -190,15 +273,15 @@ export default function RegisterForm() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 pt-6">
-          <Button 
-            type="submit" 
-            className="w-full h-11 font-semibold transition-all hover:shadow-md" 
-            disabled={loading || password !== confirmPassword || !firstName || !lastName || !email}
+          <Button
+            type="submit"
+            className="w-full h-11 font-semibold transition-all hover:shadow-md"
+            disabled={loading || uploadingAvatar || password !== confirmPassword || !firstName || !lastName || !email}
           >
-            {loading ? (
+            {loading || uploadingAvatar ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating account...
+                {uploadingAvatar ? "Uploading image..." : "Creating account..."}
               </>
             ) : (
               "Create Account"

@@ -48,6 +48,7 @@ export interface RegisterData {
     password: string;
     phone_code?: string;
     phone?: string;
+    avatar?: string;
 }
 
 export interface ForgotPasswordData {
@@ -150,6 +151,7 @@ export interface CreateEmployeeData {
     password: string;
     phone_code?: string;
     phone?: string;
+    avatar?: string;
     role: Role;
     enable_2fa?: boolean;
     send_email?: boolean;

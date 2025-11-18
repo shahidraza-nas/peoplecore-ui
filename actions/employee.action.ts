@@ -67,15 +67,15 @@ export async function listEmployees(filter: EmployeeFilter): Promise<{
 }
 
 /**
- * Get employee by ID
+ * Get employee by ID/UID
  */
-export async function getEmployeeById(id: string): Promise<{
+export async function getEmployeeById(uid: string): Promise<{
   success: boolean;
   data?: { user: User };
   error?: any;
 }> {
   try {
-    const { data, error } = await API.GetById<{ user: User }>("user", id);
+    const { data, error } = await API.GetById<{ user: User }>("user", uid);
 
     if (error) return { success: false, error };
 
@@ -113,10 +113,10 @@ export async function createEmployee(employeeData: Partial<User>): Promise<{
 }
 
 /**
- * Update employee
+ * Update employee by UID
  */
 export async function updateEmployee(
-  id: string,
+  uid: string,
   employeeData: Partial<User>
 ): Promise<{
   success: boolean;
@@ -126,7 +126,7 @@ export async function updateEmployee(
   try {
     const { data, error } = await API.UpdateById<Partial<User>, { user: User }>(
       "user",
-      id,
+      uid,
       employeeData
     );
 
@@ -134,7 +134,8 @@ export async function updateEmployee(
 
     // Revalidate employees pages
     revalidatePath("/employees");
-    revalidatePath(`/employees/${id}`);
+    revalidatePath(`/employees/${uid}`);
+    revalidatePath(`/employees/edit/${uid}`);
 
     return { success: true, data };
   } catch (error) {
@@ -144,14 +145,14 @@ export async function updateEmployee(
 }
 
 /**
- * Delete employee
+ * Delete employee by UID
  */
-export async function deleteEmployee(id: string): Promise<{
+export async function deleteEmployee(uid: string): Promise<{
   success: boolean;
   error?: any;
 }> {
   try {
-    const { error } = await API.DeleteById("user", id);
+    const { error } = await API.DeleteById("user", uid);
 
     if (error) return { success: false, error };
 
@@ -166,10 +167,10 @@ export async function deleteEmployee(id: string): Promise<{
 }
 
 /**
- * Toggle employee active status
+ * Toggle employee active status by UID
  */
 export async function toggleEmployeeStatus(
-  id: string,
+  uid: string,
   active: boolean
 ): Promise<{
   success: boolean;
@@ -179,7 +180,7 @@ export async function toggleEmployeeStatus(
   try {
     const { data, error} = await API.UpdateById<Partial<User>, { user: User }>(
       "user",
-      id,
+      uid,
       { active }
     );
 
@@ -187,7 +188,7 @@ export async function toggleEmployeeStatus(
 
     // Revalidate employees pages
     revalidatePath("/employees");
-    revalidatePath(`/employees/${id}`);
+    revalidatePath(`/employees/${uid}`);
 
     return { success: true, data };
   } catch (error) {
