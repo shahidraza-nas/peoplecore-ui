@@ -17,6 +17,7 @@ export default function RegisterForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneCode, setPhoneCode] = useState("+1");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -87,7 +88,7 @@ export default function RegisterForm() {
         last_name: lastName,
         email,
         password,
-        phone_code: phone ? "+1" : undefined,
+        phone_code: phone ? phoneCode : undefined,
         phone: phone || undefined,
         avatar: avatarUrl,
       });
@@ -189,20 +190,34 @@ export default function RegisterForm() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone" className="text-sm font-medium">
-              Phone Number <span className="text-muted-foreground text-xs">(Optional)</span>
-            </Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="9999999999"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
-              maxLength={10}
-              disabled={loading}
-              className="h-11 transition-all"
-            />
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="phoneCode" className="text-sm font-medium">Code</Label>
+              <Input
+                id="phoneCode"
+                type="text"
+                placeholder="+1"
+                value={phoneCode}
+                onChange={(e) => setPhoneCode(e.target.value)}
+                disabled={loading}
+                className="h-11 transition-all"
+              />
+            </div>
+            <div className="space-y-2 col-span-2">
+              <Label htmlFor="phone" className="text-sm font-medium">
+                Phone <span className="text-muted-foreground text-xs">(Optional)</span>
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="9999999999"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                maxLength={10}
+                disabled={loading}
+                className="h-11 transition-all"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">
