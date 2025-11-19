@@ -6,13 +6,18 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const getSessionProps = (user: any) => {
+  const fullName = user.full_name || user.name || `${user.first_name || ''} ${user.last_name || ''}`.trim();
+  const nameParts = fullName.split(' ').filter(Boolean);
+  const firstName = user.first_name || nameParts[0] || '';
+  const lastName = user.last_name || (nameParts.length > 1 ? nameParts.slice(1).join(' ') : '');
+  
   return {
     id: user.id,
     uid: user.uid,
-    first_name: user.first_name,
-    last_name: user.last_name,
-    name: user.name,
-    full_name: user.name,
+    first_name: firstName,
+    last_name: lastName,
+    name: fullName,
+    full_name: fullName,
     profile_image: user.profile_image,
     avatar: user.avatar || user.profile_image,
     role: user.role,

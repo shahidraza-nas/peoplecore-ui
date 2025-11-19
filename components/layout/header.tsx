@@ -39,19 +39,17 @@ export function Header() {
                 <div className="flex items-center gap-2">
                     <ThemeToggle />
                     <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <div className="flex items-center space-x-3 cursor-pointer hover:opacity-80 transition-opacity">
-                                <Avatar>
-                                    <AvatarImage
-                                        src={user?.avatar || undefined}
-                                        alt={user?.name || user?.first_name || 'User'}
-                                    />
-                                    <AvatarFallback className="text-xs font-semibold">
-                                        {(user?.first_name?.[0] || user?.name?.[0] || 'U')?.toUpperCase()}{(user?.last_name?.[0] || '')?.toUpperCase()}
-                                    </AvatarFallback>
-                                </Avatar>
-                                <span className="hidden sm:block text-sm font-medium">{user?.first_name || user?.name || 'User'}</span>
-                            </div>
+                        <DropdownMenuTrigger className="flex items-center space-x-3 hover:opacity-80 transition-opacity outline-none">
+                            <Avatar>
+                                <AvatarImage
+                                    src={user?.avatar || undefined}
+                                    alt={user?.name || user?.first_name || 'User'}
+                                />
+                                <AvatarFallback className="text-xs font-semibold">
+                                    {(user?.first_name?.[0] || user?.name?.[0] || 'U')?.toUpperCase()}{(user?.last_name?.[0] || '')?.toUpperCase()}
+                                </AvatarFallback>
+                            </Avatar>
+                            <span className="hidden sm:block text-sm font-medium">{user?.first_name || user?.name || 'User'}</span>
                         </DropdownMenuTrigger>
 
                         <DropdownMenuContent align="end" className="w-56">

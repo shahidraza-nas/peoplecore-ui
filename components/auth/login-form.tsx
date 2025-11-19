@@ -68,10 +68,10 @@ export function LoginForm({
           toast.error(error);
         }
       } else {
-        router.push("/dashboard");
         toast.success("Logged in successfully", {
           icon: <CheckCircle className="text-green-500" />,
         });
+        window.location.href = "/dashboard";
       }
     } catch (error) {
       toast.error("Something went wrong. Please try again.");
@@ -93,10 +93,11 @@ export function LoginForm({
       if (error) {
         toast.error(error);
       } else {
-        router.push("/dashboard");
         toast.success("Logged in successfully", {
           icon: <CheckCircle className="text-green-500" />,
         });
+        // Force a full page reload to ensure session is properly loaded
+        window.location.href = "/dashboard";
       }
     } catch (error) {
       toast.error("Something went wrong. Please try again.");

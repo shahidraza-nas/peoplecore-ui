@@ -149,10 +149,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       if (token && token.user) {
-        session.user = getSessionProps(token.user as SessionUser) as any;
+        const sessionUser = getSessionProps(token.user as SessionUser);
+        session.user = sessionUser as any;
         session.error = token.error;
         
-        // If there's a refresh token error, the session should be invalidated
         if (token.error === "RefreshAccessTokenError") {
           return { ...session, error: "RefreshAccessTokenError" };
         }
