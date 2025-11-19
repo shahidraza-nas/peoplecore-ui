@@ -29,7 +29,7 @@ export default function EditEmployeeForm({ employee }: EditEmployeeFormProps) {
   };
 
   return (
-    <EmployeeForm 
+    <EmployeeForm
       employee={employee}
       onSubmit={handleSubmit}
       onCancel={handleCancel}
