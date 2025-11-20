@@ -11,6 +11,14 @@ import {
     useRef,
 } from "react";
 import { Socket, io } from "socket.io-client";
+import {
+    requestNotificationPermission,
+    onMessageListener,
+    showNotification,
+    getFcmTokenFromStorage,
+    saveFcmTokenToStorage,
+} from "@/lib/firebase";
+import toast from "react-hot-toast";
 
 interface SocketContextType {
     socket: Socket | null;
@@ -143,6 +151,59 @@ export const useSocketContext = (): SocketContextType => {
 
 export function SocketEvents({ socket }: { socket: Socket }) {
     const router = useRouter();
+    const fcmInitialized = useRef(false);
+
+    // Initialize Firebase Cloud Messaging
+    useEffect(() => {
+        if (fcmInitialized.current) return;
+        
+        const initializeFCM = async () => {
+            try {
+                // Check if we already have a token stored
+                const existingToken = getFcmTokenFromStorage();
+                
+                if (!existingToken) {
+                    // Request permission and get token
+                    const fcmToken = await requestNotificationPermission();
+                    
+                    if (fcmToken) {
+                        saveFcmTokenToStorage(fcmToken);
+                        console.log("[FCM] Token obtained and saved:", fcmToken);
+                    }
+                }
+
+                // Listen for foreground messages
+                const unsubscribe = onMessageListener((payload) => {
+                    console.log("[FCM] Foreground message received:", payload);
+                    
+                    const title = payload?.notification?.title || payload?.data?.title || "New Message";
+                    const body = payload?.notification?.body || payload?.data?.body || "You have a new message";
+                    
+                    // Show browser notification
+                    showNotification(title, {
+                        body,
+                        tag: payload?.data?.chatUid || 'chat-notification',
+                        data: payload?.data,
+                        requireInteraction: true,
+                    });
+                    
+                    // Show toast notification
+                    toast.success(`${title}: ${body}`, {
+                        duration: 5000,
+                        position: "top-right",
+                    });
+                });
+
+                fcmInitialized.current = true;
+
+                return unsubscribe;
+            } catch (error) {
+                console.error("[FCM] Initialization error:", error);
+            }
+        };
+
+        initializeFCM();
+    }, []);
 
     useEffect(() => {
         const handleConnect = () => {
@@ -167,9 +228,24 @@ export function SocketEvents({ socket }: { socket: Socket }) {
             }
         };
 
+        // Listen for incoming messages from socket
+        const handleNewMessage = (data: any) => {
+            console.log("[Socket] New message received:", data);
+            
+            // Show notification for new messages when not on chat page
+            if (!window.location.pathname.includes('/chat')) {
+                showNotification("New Message", {
+                    body: data.message?.message || "You have a new message",
+                    tag: data.message?.chatUid || 'chat-notification',
+                    data: { chatUid: data.message?.chatUid },
+                });
+            }
+        };
+
         socket.on("connect", handleConnect);
         socket.on("disconnect", handleDisconnect);
         socket.on("connect_error", handleConnectError);
+        socket.on("user.message", handleNewMessage);
 
         if (socket.connected) {
             socket.emit('getOnlineUsers');
@@ -179,6 +255,7 @@ export function SocketEvents({ socket }: { socket: Socket }) {
             socket.off("connect", handleConnect);
             socket.off("disconnect", handleDisconnect);
             socket.off("connect_error", handleConnectError);
+            socket.off("user.message", handleNewMessage);
         };
     }, [socket, router]);
 

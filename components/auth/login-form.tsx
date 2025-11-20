@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { login, verify2Fa } from "@/actions/auth.action";
 import { LoginSchema } from "@/schemas";
+import { useNotificationContext } from "@/contexts/notification";
 
 type LoginFormProps = React.ComponentProps<"div"> & {
   onForgotPassword?: () => void;
@@ -35,6 +36,7 @@ export function LoginForm({
   const [requiresOtp, setRequiresOtp] = useState(false);
   const [sessionId, setSessionId] = useState<string>("");
   const [otpCode, setOtpCode] = useState("");
+  const { fcmToken } = useNotificationContext();
 
   const router = useRouter();
 
@@ -53,6 +55,7 @@ export function LoginForm({
       const { error, data } = await login({
         email: values.email,
         password: values.password,
+        info: { device: "web", fcm: fcmToken },
       });
       toast.remove(loadingToast);
       setLoading(false);
@@ -96,7 +99,6 @@ export function LoginForm({
         toast.success("Logged in successfully", {
           icon: <CheckCircle className="text-green-500" />,
         });
-        // Force a full page reload to ensure session is properly loaded
         window.location.href = "/dashboard";
       }
     } catch (error) {

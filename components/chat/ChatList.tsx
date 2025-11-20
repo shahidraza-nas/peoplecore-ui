@@ -96,20 +96,34 @@ export function ChatList({ chats, activeChat, currentUser, loading, onlineUsers,
                         <p className="text-sm font-medium leading-none">
                           {otherUser?.name || 'Unknown User'}
                         </p>
-                        {lastMessage && (
-                          <span className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(lastMessage.created_at), {
-                              addSuffix: false,
-                            })}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {lastMessage && (
+                            <span className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(lastMessage.created_at), {
+                                addSuffix: false,
+                              })}
+                            </span>
+                          )}
+                          {chat.unread_count !== undefined && chat.unread_count > 0 && (
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
+                              {chat.unread_count > 99 ? '99+' : chat.unread_count}
+                            </span>
+                          )}
+                        </div>
                       </div>
 
                       {lastMessage && (
-                        <p className="text-sm text-muted-foreground line-clamp-1">
-                          {lastMessage.fromUserId === currentUser?.id && 'You: '}
-                          {lastMessage.message}
-                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={cn(
+                            "text-sm line-clamp-1 flex-1",
+                            chat.unread_count !== undefined && chat.unread_count > 0 
+                              ? "font-semibold text-foreground" 
+                              : "text-muted-foreground"
+                          )}>
+                            {lastMessage.fromUserId === currentUser?.id && 'You: '}
+                            {lastMessage.message}
+                          </p>
+                        </div>
                       )}
 
                       {!lastMessage && (

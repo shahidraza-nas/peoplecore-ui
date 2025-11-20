@@ -92,6 +92,11 @@ export const useChat = (user: User | null): UseChatReturn => {
                     return new Date(bTime).getTime() - new Date(aTime).getTime();
                 });
             });
+
+            // Refresh user context to update unread count badge
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('chat-read'));
+            }
         };
 
         console.log('[useChat] Attaching message listener');
@@ -330,9 +335,23 @@ export const useChat = (user: User | null): UseChatReturn => {
     const markAsRead = useCallback(async (chatUid: string) => {
         try {
             await markChatAsRead(chatUid);
+
+            // Update messages in current chat
             setMessages((prev) =>
                 prev.map((msg) => (msg.chatId === activeChat?.id ? { ...msg, isRead: true } : msg))
             );
+
+            // Update chats list to set unread_count to 0 for this chat
+            setChats((prev) =>
+                prev.map((chat) =>
+                    chat.uid === chatUid ? { ...chat, unread_count: 0 } : chat
+                )
+            );
+
+            // Trigger user context refresh to update total unread count
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('chat-read'));
+            }
         } catch (error) {
             console.error('Failed to mark as read:', error);
         }

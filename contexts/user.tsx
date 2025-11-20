@@ -16,6 +16,7 @@ interface User {
   name: string;
   email: string;
   avatar?: string;
+  unread_messages_count?: number;
 }
 
 interface UserContextType {
@@ -53,6 +54,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         name: session.user.full_name || "",
         email: session.user.email || "",
         avatar: session.user.profile_image || undefined,
+        unread_messages_count: session.user.unread_messages_count || 0,
       });
     } catch (err) {
       setError("An error occurred while fetching user details");
@@ -64,6 +66,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     fetchUser();
+  }, [fetchUser]);
+
+  useEffect(() => {
+    const handleChatRead = () => {
+      fetchUser();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('chat-read', handleChatRead);
+      return () => window.removeEventListener('chat-read', handleChatRead);
+    }
   }, [fetchUser]);
 
   const refetchUser = useCallback(async () => {

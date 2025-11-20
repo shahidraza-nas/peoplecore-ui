@@ -30,6 +30,7 @@ declare module "next-auth" {
       | "permissions"
     > & {
       emailVerified: null;
+      unread_messages_count?: number;
     };
 
   export type KeyLogin = {

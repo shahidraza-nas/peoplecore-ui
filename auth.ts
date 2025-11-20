@@ -56,14 +56,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: {},
         password: {},
+        info: {},
       },
       authorize: async (credentials) => {
-        const { email, password } = await LoginSchema.parseAsync(credentials);
+        const { email, password, info } = credentials as any;
 
         const { data, error, message } = await API.Login<LoginResponseData>({
           username: email,
           password,
-          info: { device: "web" },
+          info: info || { device: "web" },
         });
 
         if (!!error) {

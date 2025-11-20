@@ -6,6 +6,7 @@ import { MessageSquare, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
+import { useUser } from "@/contexts/user";
 
 const navItems = [
     { name: "Chat", icon: MessageSquare, path: "/chat" },
@@ -17,6 +18,7 @@ export function Sidebar() {
     const router = useRouter();
     const pathname = usePathname();
     const { logout } = useAuth();
+    const { user } = useUser();
 
     const handleLogout = async () => {
         await logout();
@@ -39,7 +41,7 @@ export function Sidebar() {
                         key={item.path}
                         variant="ghost"
                         className={cn(
-                            "w-full justify-start text-sm font-medium transition-colors",
+                            "w-full justify-start text-sm font-medium transition-colors relative",
                             pathname === item.path
                                 ? "bg-zinc-200 dark:bg-zinc-800 border-l-2 border-zinc-800 dark:border-zinc-300"
                                 : "hover:bg-zinc-100 dark:hover:bg-zinc-800"
@@ -48,6 +50,11 @@ export function Sidebar() {
                     >
                         <item.icon className="w-4 h-4 mr-3" />
                         <span className="hidden sm:inline">{item.name}</span>
+                        {item.name === "Chat" && user?.unread_messages_count !== undefined && user.unread_messages_count > 0 && (
+                            <span className="absolute top-1 right-1 sm:relative sm:top-0 sm:right-0 sm:ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
+                                {user.unread_messages_count > 99 ? '99+' : user.unread_messages_count}
+                            </span>
+                        )}
                     </Button>
                 ))}
             </nav>

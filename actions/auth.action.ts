@@ -12,13 +12,13 @@ export async function login(
   const validatedFields = LoginSchema.safeParse(data);
   if (!validatedFields.success) return { error: "Invalid Fields!" };
   
-  const { email, password } = validatedFields.data;
-  
+  const { email, password, info } = validatedFields.data as any;
   try {
     const resp = await signIn("credentials", {
       email,
       password,
       redirect: false,
+      info: info || { device: "web" }
     });
 
     if (!resp) {

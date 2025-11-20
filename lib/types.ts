@@ -39,6 +39,7 @@ export interface User {
     send_email?: boolean;
     send_sms?: boolean;
     send_push?: boolean;
+    unread_messages_count?: number;
     last_login_at?: string;
     created_at: string;
     updated_at: string;
@@ -130,6 +131,7 @@ export interface Chat {
     user1?: User;
     user2?: User;
     messages?: ChatMessage[];
+    unread_count?: number;
     active: boolean;
     created_at: string;
     updated_at: string;

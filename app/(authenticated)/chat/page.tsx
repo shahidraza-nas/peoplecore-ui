@@ -36,6 +36,18 @@ export default function ChatPage() {
         refreshChats,
     } = useChat(user);
 
+    // Listen for chat-read events from notifications
+    useEffect(() => {
+        const handleChatRead = () => {
+            refreshChats();
+        };
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('chat-read', handleChatRead);
+            return () => window.removeEventListener('chat-read', handleChatRead);
+        }
+    }, [refreshChats]);
+
     // Debug socket status
     useEffect(() => {
         console.log("=== CHAT PAGE DEBUG ===");

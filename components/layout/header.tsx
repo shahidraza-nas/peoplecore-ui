@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Users2, User, LogOut, Settings, Newspaper } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
+import { NotificationDropdown } from "./NotificationDropdown";
 
 export function Header() {
     const router = useRouter();
@@ -46,6 +47,7 @@ export function Header() {
                         </Link>
                     </nav>
                     <ThemeToggle />
+                    <NotificationDropdown />
                     <DropdownMenu>
                         <DropdownMenuTrigger className="flex items-center space-x-3 hover:opacity-80 transition-opacity outline-none">
                             <Avatar>
