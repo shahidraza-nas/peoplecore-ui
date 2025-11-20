@@ -54,23 +54,42 @@ export async function listNewsfeed(filter: NewsfeedFilter): Promise<{
     }
 }
 
-
 /**
- * Get newsfeed post by ID
+ * Get newsfeed post by ID (with optional populate)
  */
-export async function getNewsfeedById(id: number): Promise<{
+export async function getNewsfeedById(id: string | number, populate?: string[]): Promise<{
     success: boolean;
     data?: { newsfeed: Newsfeed };
     error?: any;
 }> {
     try {
-        const { data, error } = await API.GetById<{ newsfeed: Newsfeed }>('newsfeed', id);
+        const params: Record<string, any> = {};
+        if (populate) params.populate = populate;
+        const { data, error } = await API.GetById<{ newsfeed: Newsfeed }>('newsfeed', id, params);
         if (error) return { success: false, error };
         return { success: true, data };
     } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch newsfeed' };
     }
 }
+
+
+/**
+ * Get newsfeed post by ID
+ */
+// export async function getNewsfeedById(id: number, populate?: string[]): Promise<{
+//     success: boolean;
+//     data?: { newsfeed: Newsfeed };
+//     error?: any;
+// }> {
+//     try {
+//         const { data, error } = await API.GetById<{ newsfeed: Newsfeed }>('newsfeed', id);
+//         if (error) return { success: false, error };
+//         return { success: true, data };
+//     } catch (error) {
+//         return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch newsfeed' };
+//     }
+// }
 
 
 

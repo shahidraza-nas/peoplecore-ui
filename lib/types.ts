@@ -7,6 +7,7 @@ export interface Newsfeed {
     published?: boolean;
     publishDate?: string;
     tags?: string;
+    author?: User;
 }
 
 export enum Role {

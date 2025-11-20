@@ -13,7 +13,7 @@ interface PageProps {
 
 export default async function NewsfeedDetailsPage({ params }: PageProps) {
     const { id } = await params;
-    const response = await getNewsfeedById(Number(id));
+    const response = await getNewsfeedById(Number(id), ['author']);
     if (!response.success || !response.data?.newsfeed) {
         notFound();
     }
@@ -56,7 +56,7 @@ export default async function NewsfeedDetailsPage({ params }: PageProps) {
                                 <Badge variant={newsfeed.published ? "default" : "secondary"}>
                                     {newsfeed.published ? "Published" : "Draft"}
                                 </Badge>
-                                <Badge variant="secondary">{newsfeed.authorId ? `By User #${newsfeed.authorId}` : "Unknown Author"}</Badge>
+                                <Badge variant="secondary">{newsfeed ? `By #${newsfeed?.author?.name}` : "Unknown Author"}</Badge>
                             </CardDescription>
                         </div>
                     </div>
