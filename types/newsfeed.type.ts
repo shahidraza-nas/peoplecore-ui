@@ -4,7 +4,7 @@ export interface Newsfeed {
   id: number;
   title: string;
   content: string;
-  authorId: number;
+  created_by: number;
   pinned?: boolean;
   published?: boolean;
   publishDate?: string;
