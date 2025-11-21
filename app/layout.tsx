@@ -1,11 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
-import { Toaster as SonnerToast } from "sonner";
+import { Toaster } from "sonner";
 import { Providers } from "@/providers/Providers";
-import { NotificationProvider } from "@/contexts/notification";
 import { auth } from "@/auth";
+import { siteConfig } from "@/config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,13 +17,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Core People",
-  description: "Core People Hub, Chat, and more",
+  title: siteConfig.name,
+  description: siteConfig.description,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "PeopleCore",
+    title: siteConfig.name,
   },
 };
 
@@ -47,13 +46,10 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <NotificationProvider>
-          <Providers session={session}>
-            {children}
-            <Toaster position="top-center" />
-            <SonnerToast position="top-center" />
-          </Providers>
-        </NotificationProvider>
+        <Providers session={session}>
+          {children}
+          <Toaster position="top-center" />
+        </Providers>
       </body>
     </html>
   );

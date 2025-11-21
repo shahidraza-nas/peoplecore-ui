@@ -3,9 +3,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { API } from '@/lib/fetch';
-import { Newsfeed } from '@/lib/types';
-import { Pin } from 'lucide-react';
+import { Newsfeed } from '@/types';
+import { Pin, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 export default function NewsfeedPage() {
     const [newsfeeds, setNewsfeeds] = useState<Newsfeed[]>([]);
@@ -17,7 +18,10 @@ export default function NewsfeedPage() {
             setLoading(true);
             setError(null);
             try {
-                const { data, error } = await API.GetAll('newsfeed', { sort: [['pinned', 'desc'], ['publishDate', 'desc']] });
+                const { data, error } = await API.GetAll('newsfeed', { 
+                    sort: [['pinned', 'desc'], ['publishDate', 'desc']],
+                    populate: ['author']
+                });
                 if (error) {
                     setError("Failed to load newsfeed.");
                     setNewsfeeds([]);
@@ -43,14 +47,31 @@ export default function NewsfeedPage() {
     if (error) {
         return <div className="text-red-500">{error}</div>;
     }
-    if (!newsfeeds.length) {
-        return <div className="text-gray-500">No newsfeed items found.</div>;
-    }
 
     return (
         <div className="max-w-3xl mx-auto py-10 px-4">
-            <h1 className="text-3xl font-bold mb-8 text-center text-zinc-900 dark:text-zinc-100">Company Newsfeed</h1>
-            <ul className="space-y-8">
+            <div className="flex items-center justify-between mb-8">
+                <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-100">Company Newsfeed</h1>
+                <Link href="/newsfeed/create">
+                    <Button>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Post
+                    </Button>
+                </Link>
+            </div>
+
+            {!newsfeeds.length ? (
+                <div className="text-center py-12">
+                    <p className="text-gray-500 mb-4">No newsfeed items found.</p>
+                    <Link href="/newsfeed/create">
+                        <Button>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Your First Post
+                        </Button>
+                    </Link>
+                </div>
+            ) : (
+                <ul className="space-y-8">
                 {newsfeeds.map((item) => (
                     <Link key={item.id} href={`/newsfeed/${item.id}`} className="block">
                         <li className={`relative border rounded-xl p-6 shadow-lg transition hover:shadow-xl cursor-pointer ${item.pinned ? 'border-yellow-400 bg-yellow-50 dark:border-yellow-500 dark:bg-zinc-900' : 'border-zinc-100 bg-white dark:border-zinc-800 dark:bg-zinc-900'}`}>
@@ -65,7 +86,9 @@ export default function NewsfeedPage() {
                             )}
                             <h2 className="text-xl font-semibold mb-2 text-zinc-800 dark:text-zinc-100">{item.title}</h2>
                             <div className="flex items-center gap-4 mb-3">
-                                <span className="text-xs text-zinc-500 dark:text-zinc-300">By User #{item.authorId}</span>
+                                <span className="text-xs text-zinc-500 dark:text-zinc-300">
+                                    By {item.author?.name || `User #${item.created_by}`}
+                                </span>
                                 <span className="text-xs text-zinc-400 dark:text-zinc-400">{item.publishDate ? new Date(item.publishDate).toLocaleDateString() : 'N/A'}</span>
                             </div>
                             <div className="text-base text-zinc-700 dark:text-zinc-200 mb-4 leading-relaxed">{item.content}</div>
@@ -83,7 +106,8 @@ export default function NewsfeedPage() {
                         </li>
                     </Link>
                 ))}
-            </ul>
+                </ul>
+            )}
         </div>
     );
 }

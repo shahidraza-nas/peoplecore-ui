@@ -11,7 +11,6 @@ import {
 } from "react";
 import { useSession } from "next-auth/react";
 import { API } from "@/lib/fetch";
-import { User as UserModel } from "@/models/user";
 import { useSocketContext } from "@/contexts/socket";
 
 interface User {
@@ -98,11 +97,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       setError(null);
 
-      const mappedUser = {
-        id: session.user.id || "",
-        name: session.user.full_name || "",
-        email: session.user.email || "",
-        avatar: session.user.profile_image || undefined,
+      const mappedUser: User = {
+        id: String(session.user.id || ""),
+        name: String(session.user.full_name || ""),
+        email: String(session.user.email || ""),
+        avatar: session.user.profile_image ? String(session.user.profile_image) : undefined,
         unread_messages_count: session.user.unread_messages_count || 0,
       };
 

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { API } from '@/lib/fetch';
-import { User, CreateEmployeeData, ApiError } from '@/lib/types';
-import toast from 'react-hot-toast';
+import { User, CreateEmployeeData, ApiError } from '@/types';
+import { toast } from 'sonner';
 
 interface UseEmployeesReturn {
   employees: User[];

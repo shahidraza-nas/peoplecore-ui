@@ -1,4 +1,4 @@
-import { User } from "@/models/user";
+import { User } from "@/types";
 import { auth } from "@/auth";
 import { getSession } from "next-auth/react";
 
@@ -575,6 +575,37 @@ const DashboardStats = async <T>(
   }
 };
 
+/**
+ * Chat API Methods
+ */
+
+const GetMyChats = async (queryParams?: { offset?: number; limit?: number }) => {
+  return Get('chat/chats', queryParams);
+};
+
+const GetChatMessages = async (
+  chatUid: string,
+  queryParams?: { offset?: number; limit?: number }
+) => {
+  return Get(`chat/${chatUid}/messages`, queryParams);
+};
+
+const SendMessage = async (data: { toUserUid: string; message: string }) => {
+  return Post('chat/send', data);
+};
+
+const MarkChatAsRead = async (chatUid: string) => {
+  return Get(`chat/${chatUid}/messages/readAll`);
+};
+
+const GetChatByUid = async (chatUid: string) => {
+  return GetById('chat', chatUid);
+};
+
+const CreateChat = async (userUid: string) => {
+  return Create('chat', { userUid });
+};
+
 export const API = {
   Create,
   DashboardStats,
@@ -593,4 +624,11 @@ export const API = {
   UpdateById,
   UpdateMe,
   fetch,
+  // Chat methods
+  GetMyChats,
+  GetChatMessages,
+  SendMessage,
+  MarkChatAsRead,
+  GetChatByUid,
+  CreateChat,
 };

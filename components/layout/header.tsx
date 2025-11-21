@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Users2, User, LogOut, Settings, Newspaper } from "lucide-react";
+import { Users2, User, LogOut, Newspaper } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
 import { NotificationDropdown } from "./NotificationDropdown";
@@ -43,13 +43,13 @@ export function Header() {
                         {/* Other nav links */}
                         <Link href="/newsfeed" className="flex items-center gap-2 text-zinc-700 hover:text-primary transition">
                             <Newspaper size={20} className="inline-block" />
-                            <span className="font-medium">Newsfeed</span>
+                            {/* <span className="font-medium">Newsfeed</span> */}
                         </Link>
                     </nav>
                     <ThemeToggle />
                     <NotificationDropdown />
                     <DropdownMenu>
-                        <DropdownMenuTrigger className="flex items-center space-x-3 hover:opacity-80 transition-opacity outline-none">
+                        <DropdownMenuTrigger className="flex items-center space-x-3 hover:opacity-80 transition-opacity outline-none" suppressHydrationWarning>
                             <Avatar>
                                 <AvatarImage
                                     src={user?.avatar || undefined}

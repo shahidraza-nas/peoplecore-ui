@@ -17,8 +17,7 @@ import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@/contexts/user";
 import { useSocketContext } from "@/contexts/socket";
-import { markChatAsRead } from "@/lib/api-chat";
-import type { Chat, ChatMessage } from "@/lib/types";
+import type { Chat, ChatMessage } from "@/types";
 import { API } from "@/lib/fetch";
 
 interface UnreadMessageGroup {
@@ -100,20 +99,13 @@ export function NotificationDropdown() {
         };
     }, [open]);
 
-    // Listen for socket events
     useEffect(() => {
         if (!socket) return;
-
         const handleNewMessage = (data: any) => {
-            // Immediately refresh unread count
             refreshUnreadCount();
-
-            // Trigger custom event for cross-tab sync
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('message-received'));
             }
-
-            // Refresh dropdown list if open
             if (open && !loading) {
                 if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
                 fetchTimeoutRef.current = setTimeout(() => {
@@ -122,7 +114,6 @@ export function NotificationDropdown() {
             }
         };
 
-        // Backend emits 'user.message' event (not 'message:new')
         socket.on('user.message', handleNewMessage);
 
         return () => {
@@ -135,32 +126,29 @@ export function NotificationDropdown() {
         e.stopPropagation();
 
         try {
-            await markChatAsRead(chatUid);
+            await API.MarkChatAsRead(chatUid);
             setUnreadGroups(prev => prev.filter(g => g.chat.uid !== chatUid));
-            
-            // Refresh unread count immediately
+
             await refreshUnreadCount();
-            
-            // Trigger custom event for cross-tab sync
+
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('chat-read'));
             }
         } catch (error) {
             console.error('[NotificationDropdown] Failed to mark messages as read:', error);
         }
-    };    const handleOpenChat = (chatUid: string) => {
+    }; const handleOpenChat = (chatUid: string) => {
         setOpen(false);
         router.push(`/chat?uid=${chatUid}`);
     };
 
     const handleMarkAllAsRead = async () => {
         try {
-            const promises = unreadGroups.map(group => markChatAsRead(group.chat.uid));
+            const promises = unreadGroups.map(group => API.MarkChatAsRead(group.chat.uid));
             await Promise.all(promises);
 
             setUnreadGroups([]);
-            
-            // Refresh unread count immediately
+
             await refreshUnreadCount();
 
             if (typeof window !== 'undefined') {
@@ -169,14 +157,14 @@ export function NotificationDropdown() {
         } catch (error) {
             console.error('[NotificationDropdown] Failed to mark all as read:', error);
         }
-    };    // Don't render if user is not logged in
+    };
     if (!user) {
         return null;
     }
 
     return (
         <DropdownMenu open={open} onOpenChange={setOpen}>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger asChild suppressHydrationWarning>
                 <Button
                     variant="ghost"
                     size="icon"

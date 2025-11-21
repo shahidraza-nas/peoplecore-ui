@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import NewsfeedForm from "@/components/newsfeed/newsfeed-form";
 import { createNewsfeed } from "@/actions/newsfeed.action";
-import { Newsfeed } from "@/lib/types";
+import { Newsfeed } from "@/types";
 
 export default function CreateNewsfeedForm() {
     const router = useRouter();

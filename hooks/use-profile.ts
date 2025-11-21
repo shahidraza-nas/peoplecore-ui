@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { API } from '@/lib/fetch';
-import { User, ApiError } from '@/lib/types';
-import toast from 'react-hot-toast';
+import { User, ApiError } from '@/types';
+import { toast } from 'sonner';
 
 interface UpdateProfileData {
   first_name?: string;

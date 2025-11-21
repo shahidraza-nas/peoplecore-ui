@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import EmployeeForm from "@/components/employees/employee-form";
 import { createEmployee } from "@/actions/employee.action";
-import { CreateEmployeeData } from "@/lib/types";
+import { CreateEmployeeData } from "@/types";
 
 export default function CreateEmployeeForm() {
     const router = useRouter();

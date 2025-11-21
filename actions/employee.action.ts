@@ -1,7 +1,7 @@
 "use server";
 
 import { API } from "@/lib/fetch";
-import { User } from "@/lib/types";
+import { User } from "@/types";
 import { revalidatePath } from "next/cache";
 
 export interface EmployeeListResponse {

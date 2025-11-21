@@ -1,16 +1,9 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { MessageSquare, User, LayoutDashboard, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/contexts/user";
-
-const navItems = [
-    { name: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
-    { name: "Employees", icon: Users, path: "/employees" },
-    { name: "Chat", icon: MessageSquare, path: "/chat" },
-    { name: "Profile", icon: User, path: "/profile" },
-];
+import { navItems } from "@/config";
 
 export function AppSidebar() {
     const pathname = usePathname();

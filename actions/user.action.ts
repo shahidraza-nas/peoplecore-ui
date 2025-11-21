@@ -1,7 +1,7 @@
 "use server";
 
 import { API } from "@/lib/fetch";
-import { User, AuthProvider } from "@/lib/types";
+import { User, AuthProvider } from "@/types";
 
 export interface UserMeResponse {
   user: User;

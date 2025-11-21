@@ -17,7 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { CheckCircle, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { login, verify2Fa } from "@/actions/auth.action";
 import { LoginSchema } from "@/schemas";
 import { useNotificationContext } from "@/contexts/notification";
@@ -57,7 +57,7 @@ export function LoginForm({
         password: values.password,
         info: fcmToken ? { device: "web", fcm: fcmToken } : { device: "web" },
       });
-      toast.remove(loadingToast);
+      toast.dismiss(loadingToast);
       setLoading(false);
       
       if (error) {
@@ -90,7 +90,7 @@ export function LoginForm({
       setLoading(true);
       const loadingToast = toast.loading("Verifying OTP...");
       const { error } = await verify2Fa(otpCode, sessionId);
-      toast.remove(loadingToast);
+      toast.dismiss(loadingToast);
       setLoading(false);
 
       if (error) {

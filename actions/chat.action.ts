@@ -1,7 +1,7 @@
 "use server";
 
 import { API } from "@/lib/fetch";
-import { Chat, ChatMessage, SendMessageData } from "@/lib/types";
+import { Chat, ChatMessage, SendMessageData } from "@/types";
 import { revalidatePath } from "next/cache";
 
 export interface ChatListResponse {

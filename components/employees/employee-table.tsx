@@ -1,6 +1,6 @@
 "use client";
 
-import { User } from "@/lib/types";
+import { User } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

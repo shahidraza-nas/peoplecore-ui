@@ -11,8 +11,8 @@ import {
   ResetPasswordData,
   VerifyOtpData,
   ChangePasswordData,
-} from '@/lib/types';
-import toast from 'react-hot-toast';
+} from '@/types';
+import { toast } from 'sonner';
 
 interface UseAuthReturn {
   user: User | null;

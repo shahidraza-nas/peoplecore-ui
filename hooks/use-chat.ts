@@ -9,8 +9,8 @@ import {
     sendMessage as apiSendMessage,
     markChatAsRead,
 } from '@/actions/chat.action';
-import type { Chat, ChatMessage, User } from '@/lib/types';
-import { toast } from 'react-hot-toast';
+import type { Chat, ChatMessage, User } from '@/types';
+import { toast } from 'sonner';
 
 export interface UseChatReturn {
     chats: Chat[];
@@ -319,6 +319,12 @@ export const useChat = (user: User | null): UseChatReturn => {
                 emitMessage(socket, { toUserUid, message: message.trim() });
             } else {
                 console.warn('[useChat] Socket not connected, message sent via API only');
+            }
+
+            // Refresh unread count after sending to update bell icon
+            if (typeof window !== 'undefined') {
+                console.log('[useChat] Dispatching message-sent event to refresh unread count');
+                window.dispatchEvent(new CustomEvent('chat-read'));
             }
         } catch (error) {
             toast.error('Failed to send message');
