@@ -59,8 +59,9 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
         // Check if service worker is already registered
         const existingRegistration = await navigator.serviceWorker.getRegistration("/firebase-messaging-sw.js");
         
+        let registration = existingRegistration;
         if (!existingRegistration) {
-          const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
+          registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
             scope: "/",
           });
           console.log("Service Worker registered successfully:", registration);
@@ -75,6 +76,15 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
         );
         
         await Promise.race([readyPromise, timeoutPromise]);
+
+        // Send Firebase config to service worker
+        if (registration?.active) {
+          registration.active.postMessage({
+            type: 'FIREBASE_CONFIG',
+            config: firebaseConfig
+          });
+          console.log("Firebase config sent to service worker");
+        }
       } catch (swError) {
         console.warn("Service worker registration issue:", swError);
         // Continue anyway - FCM might still work

@@ -69,14 +69,18 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                     // Show browser notification for Windows
                     if (Notification.permission === 'granted') {
                         try {
+                            // Use unique tag with timestamp to ensure each notification appears
+                            // Windows groups notifications with same tag, so we make it unique
+                            const chatUid = payload?.data?.chatUid || 'notification';
+                            const uniqueTag = `${chatUid}-${Date.now()}`;
+                            
                             showNotification(title, {
                                 body: body || '',
                                 icon: '/images/icon-192x192.png',
                                 badge: '/images/badge-72x72.png',
-                                tag: payload?.data?.chatUid || 'notification',
+                                tag: uniqueTag,
                                 requireInteraction: true,
                                 silent: false,
-                                vibrate: [200, 100, 200],
                                 data: {
                                     chatUid: payload?.data?.chatUid,
                                     url: payload?.data?.url || '/chat',

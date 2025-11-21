@@ -72,13 +72,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           info: parsedInfo,
         });
 
-        console.log('[AUTH] Backend response:', { 
-          data: !!data, 
-          error, 
-          message,
-          user: data?.user,
-          unread_count: data?.user?.unread_messages_count 
-        });
+        // console.log('[AUTH] Backend response:', { 
+        //   data: !!data, 
+        //   error, 
+        //   message,
+        //   user: data?.user,
+        //   unread_count: data?.user?.unread_messages_count 
+        // });
 
         if (!!error) {
           throw new InvalidCredentialError(message);
