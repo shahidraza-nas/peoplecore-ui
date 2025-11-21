@@ -55,20 +55,38 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
                 // Listen for foreground messages
                 const unsubscribe = onMessageListener((payload) => {
+                    console.log('[NotificationProvider] Foreground message received:', payload);
+                    
                     const title = payload?.notification?.title || payload?.data?.title || 'New Notification';
                     const body = payload?.notification?.body || payload?.data?.body;
                     
+                    // Show toast notification
                     toast(`${title}${body ? ': ' + body : ''}`, {
                         duration: 5000,
                         position: 'top-right',
                     });
 
-                    // Show browser notification
-                    showNotification(title, {
-                        body: body || '',
-                        tag: payload?.data?.chatUid || 'notification',
-                        data: payload?.data,
-                    });
+                    // Show browser notification for Windows
+                    if (Notification.permission === 'granted') {
+                        try {
+                            showNotification(title, {
+                                body: body || '',
+                                icon: '/images/icon-192x192.png',
+                                badge: '/images/badge-72x72.png',
+                                tag: payload?.data?.chatUid || 'notification',
+                                requireInteraction: true,
+                                silent: false,
+                                vibrate: [200, 100, 200],
+                                data: {
+                                    chatUid: payload?.data?.chatUid,
+                                    url: payload?.data?.url || '/chat',
+                                    ...payload?.data,
+                                },
+                            });
+                        } catch (notifError) {
+                            console.warn('[NotificationProvider] Failed to show browser notification:', notifError);
+                        }
+                    }
                 });
 
                 return unsubscribe;

@@ -21,15 +21,27 @@ messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Received background message:', payload);
   
   const notificationTitle = payload?.notification?.title || payload?.data?.title || 'New Message';
+  const notificationBody = payload?.notification?.body || payload?.data?.body || 'You have a new message';
+  
   const notificationOptions = {
-    body: payload?.notification?.body || payload?.data?.body || 'You have a new message',
-    icon: '/images/icon-192x192.png',
-    badge: '/images/badge-72x72.png',
+    body: notificationBody,
+    icon: payload?.data?.icon || payload?.notification?.icon || '/images/icon-192x192.png',
+    badge: payload?.data?.badge || '/images/badge-72x72.png',
     tag: payload?.data?.chatUid || 'chat-notification',
-    data: payload?.data || {},
+    data: {
+      chatUid: payload?.data?.chatUid,
+      type: payload?.data?.type || 'chat_message',
+      url: payload?.data?.url || '/chat',
+      ...payload?.data
+    },
     requireInteraction: true,
     vibrate: [200, 100, 200],
+    silent: false,
+    renotify: true,
+    timestamp: Date.now(),
   };
+  
+  console.log('[firebase-messaging-sw.js] Showing notification:', { title: notificationTitle, options: notificationOptions });
   
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });

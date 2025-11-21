@@ -320,6 +320,12 @@ export const useChat = (user: User | null): UseChatReturn => {
             } else {
                 console.warn('[useChat] Socket not connected, message sent via API only');
             }
+
+            // Refresh unread count after sending to update bell icon
+            if (typeof window !== 'undefined') {
+                console.log('[useChat] Dispatching message-sent event to refresh unread count');
+                window.dispatchEvent(new CustomEvent('chat-read'));
+            }
         } catch (error) {
             toast.error('Failed to send message');
         } finally {
