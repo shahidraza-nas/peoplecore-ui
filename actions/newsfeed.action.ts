@@ -1,6 +1,6 @@
 
 import { API } from '@/lib/fetch';
-import { Newsfeed } from '@/lib/types';
+import { Newsfeed } from '@/types';
 
 export interface NewsfeedListResponse {
     newsfeeds: Newsfeed[];

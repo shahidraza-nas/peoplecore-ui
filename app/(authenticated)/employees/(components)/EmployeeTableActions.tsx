@@ -21,9 +21,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { MoreHorizontal, Loader2 } from "lucide-react";
-import { User } from "@/lib/types";
+import { User } from "@/types";
 import { deleteEmployee, toggleEmployeeStatus } from "@/actions/employee.action";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 interface EmployeeTableActionsProps {
   employee: User;

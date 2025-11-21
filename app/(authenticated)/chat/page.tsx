@@ -9,8 +9,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { User } from "@/lib/types";
-import toast from "react-hot-toast";
+import { User } from "@/types";
+import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { searchUsers } from "@/actions/user.action";
 

@@ -2,17 +2,12 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { MessageSquare, User, Settings, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useUser } from "@/contexts/user";
-
-const navItems = [
-    { name: "Chat", icon: MessageSquare, path: "/chat" },
-    { name: "Profile", icon: User, path: "/profile" },
-    { name: "Settings", icon: Settings, path: "/settings" },
-];
+import { navItems, siteConfig } from "@/config";
 
 export function Sidebar() {
     const router = useRouter();
@@ -30,7 +25,7 @@ export function Sidebar() {
             <div className="flex items-center justify-center sm:justify-start h-16 px-4 border-b border-zinc-200 dark:border-zinc-800">
                 <span className="text-lg">💬</span>
                 <span className="hidden sm:block ml-2 font-bold text-zinc-800 dark:text-zinc-100">
-                    PeopleCore
+                    {siteConfig.name}
                 </span>
             </div>
 

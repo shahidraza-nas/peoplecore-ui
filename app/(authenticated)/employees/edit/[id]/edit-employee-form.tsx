@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import EmployeeForm from "@/components/employees/employee-form";
 import { updateEmployee } from "@/actions/employee.action";
-import { User } from "@/lib/types";
+import { User } from "@/types";
 
 interface EditEmployeeFormProps {
   employee: User;

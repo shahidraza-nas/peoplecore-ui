@@ -17,8 +17,7 @@ import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@/contexts/user";
 import { useSocketContext } from "@/contexts/socket";
-import { markChatAsRead } from "@/lib/api-chat";
-import type { Chat, ChatMessage } from "@/lib/types";
+import type { Chat, ChatMessage } from "@/types";
 import { API } from "@/lib/fetch";
 
 interface UnreadMessageGroup {
@@ -135,7 +134,7 @@ export function NotificationDropdown() {
         e.stopPropagation();
 
         try {
-            await markChatAsRead(chatUid);
+            await API.MarkChatAsRead(chatUid);
             setUnreadGroups(prev => prev.filter(g => g.chat.uid !== chatUid));
             
             // Refresh unread count immediately
@@ -155,7 +154,7 @@ export function NotificationDropdown() {
 
     const handleMarkAllAsRead = async () => {
         try {
-            const promises = unreadGroups.map(group => markChatAsRead(group.chat.uid));
+            const promises = unreadGroups.map(group => API.MarkChatAsRead(group.chat.uid));
             await Promise.all(promises);
 
             setUnreadGroups([]);

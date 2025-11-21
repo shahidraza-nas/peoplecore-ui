@@ -18,7 +18,7 @@ import {
     getFcmTokenFromStorage,
     saveFcmTokenToStorage,
 } from "@/lib/firebase";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 interface SocketContextType {
     socket: Socket | null;

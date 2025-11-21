@@ -7,7 +7,7 @@ import {
     getFcmTokenFromStorage,
     saveFcmTokenToStorage,
 } from '@/lib/firebase';
-import toast from 'react-hot-toast';
+import { toast } from 'sonner';
 
 interface NotificationContextProps {
     fcmToken: string | null;

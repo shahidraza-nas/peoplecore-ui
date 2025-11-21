@@ -1,4 +1,4 @@
-import { User as UserMe } from "@/models/user";
+import { User as UserMe } from "@/types";
 import "next-auth";
 
 declare module "next-auth/jwt" {

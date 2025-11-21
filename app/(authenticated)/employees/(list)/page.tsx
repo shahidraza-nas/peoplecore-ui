@@ -7,7 +7,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listEmployees } from "@/actions/employee.action";
-import { User } from "@/lib/types";
+import { User } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";

@@ -9,8 +9,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect, useState } from "react";
 import { getDashboardStats } from "@/actions/user.action";
-import { DashboardStats } from "@/lib/types";
-import toast from "react-hot-toast";
+import { DashboardStats } from "@/types";
+import { toast } from "sonner";
 
 export default function DashboardPage() {
     const router = useRouter();

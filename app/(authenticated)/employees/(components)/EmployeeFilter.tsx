@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Role } from "@/models/user";
+import { Role } from "@/types";
 
 interface EmployeeFilterProps {
   disabled?: boolean;

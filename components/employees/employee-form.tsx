@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, EyeOff, Loader2, Upload, X } from "lucide-react";
-import { Role, CreateEmployeeData } from "@/lib/types";
+import { Role, CreateEmployeeData } from "@/types";
 import { uploadImageToS3 } from "@/actions/aws.action";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 
 interface EmployeeFormProps {
   employee?: any;

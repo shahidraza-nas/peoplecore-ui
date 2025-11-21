@@ -9,8 +9,8 @@ import {
     sendMessage as apiSendMessage,
     markChatAsRead,
 } from '@/actions/chat.action';
-import type { Chat, ChatMessage, User } from '@/lib/types';
-import { toast } from 'react-hot-toast';
+import type { Chat, ChatMessage, User } from '@/types';
+import { toast } from 'sonner';
 
 export interface UseChatReturn {
     chats: Chat[];

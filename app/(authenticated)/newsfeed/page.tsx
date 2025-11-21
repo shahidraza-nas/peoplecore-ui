@@ -3,7 +3,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { API } from '@/lib/fetch';
-import { Newsfeed } from '@/lib/types';
+import { Newsfeed } from '@/types';
 import { Pin } from 'lucide-react';
 import Link from 'next/link';
 

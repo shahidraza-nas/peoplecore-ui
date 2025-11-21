@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, EyeOff, Loader2, Upload, X } from "lucide-react";
 import Link from "next/link";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import { uploadImageToS3 } from "@/actions/aws.action";
 
 export default function RegisterForm() {
