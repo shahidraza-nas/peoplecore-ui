@@ -55,7 +55,7 @@ export function LoginForm({
       const { error, data } = await login({
         email: values.email,
         password: values.password,
-        info: { device: "web", fcm: fcmToken },
+        info: fcmToken ? { device: "web", fcm: fcmToken } : { device: "web" },
       });
       toast.remove(loadingToast);
       setLoading(false);

@@ -334,7 +334,15 @@ export const useChat = (user: User | null): UseChatReturn => {
 
     const markAsRead = useCallback(async (chatUid: string) => {
         try {
-            await markChatAsRead(chatUid);
+            console.log('[useChat] Marking chat as read:', chatUid);
+            const result = await markChatAsRead(chatUid);
+            
+            if (!result.success) {
+                console.error('[useChat] Failed to mark as read:', result.error);
+                return;
+            }
+
+            console.log('[useChat] Successfully marked as read, updating state');
 
             // Update messages in current chat
             setMessages((prev) =>
@@ -348,12 +356,13 @@ export const useChat = (user: User | null): UseChatReturn => {
                 )
             );
 
-            // Trigger user context refresh to update total unread count
+            // Immediately trigger refresh without delay for instant UI update
             if (typeof window !== 'undefined') {
+                console.log('[useChat] Dispatching chat-read event');
                 window.dispatchEvent(new CustomEvent('chat-read'));
             }
         } catch (error) {
-            console.error('Failed to mark as read:', error);
+            console.error('[useChat] Exception in markAsRead:', error);
         }
     }, [activeChat]);
 

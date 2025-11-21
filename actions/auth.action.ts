@@ -18,7 +18,7 @@ export async function login(
       email,
       password,
       redirect: false,
-      info: info || { device: "web" }
+      info: JSON.stringify(info || { device: "web" })
     });
 
     if (!resp) {

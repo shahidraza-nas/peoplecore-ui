@@ -28,9 +28,12 @@ export const SocketContext = createContext<SocketContextType | undefined>(
     undefined
 );
 
-// Global singleton socket - ensures only ONE socket instance for entire app
+
 let globalSocket: Socket | null = null;
-let isConnecting = false; 
+let isConnecting = false;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_DELAY = 3000; 
 
 export default function SocketProvider({ children }: { children: ReactNode }) {
     const [socket, setSocket] = useState<Socket | null>(null);
@@ -82,27 +85,91 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         const socketIO = io(apiUrl, {
             transports: ["websocket"],
             query: { token },
-            reconnection: false,
+            reconnection: true,
+            reconnectionAttempts: MAX_RECONNECT_ATTEMPTS,
+            reconnectionDelay: RECONNECT_DELAY,
             autoConnect: true,
         });
 
         socketIO.on('connect', () => {
             isConnecting = false;
-            console.log('[Socket] Connected');
+            reconnectAttempts = 0;
+            console.log('[Socket] Connected successfully');
+            
+            // Show success toast only if this was a reconnection
+            if (reconnectAttempts > 0) {
+                toast.success('Connected to chat server', { duration: 2000 });
+            }
         });
 
         socketIO.on('connect_error', (error) => {
             isConnecting = false;
-            console.error('[Socket] Connection error:', error.message);
+            reconnectAttempts++;
+            
+            const errorMessage = error.message.toLowerCase();
+            
+            // Handle authentication errors - show to user and redirect
+            if (errorMessage.includes('jwt expired') ||
+                errorMessage.includes('invalid token') ||
+                errorMessage.includes('unauthorized') ||
+                errorMessage.includes('authentication')) {
+                console.warn('[Socket] Authentication error - token expired');
+                toast.error('Session expired. Please login again.');
+                // Don't log error to console - this will be handled by redirect
+                return;
+            }
+            
+            // Handle server unavailable (restart, network issues)
+            // Only log in development, don't show to user unless max attempts reached
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`[Socket] Connection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} failed`);
+            }
+            
+            // Show user-friendly message only after max attempts
+            if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                toast.error('Unable to connect to chat server. Retrying...', { duration: 3000 });
+            }
         });
 
         socketIO.on('disconnect', (reason) => {
             isConnecting = false;
-            console.log('[Socket] Disconnected:', reason);
+            
+            // Log different disconnect reasons appropriately
+            if (reason === 'io server disconnect') {
+                // Server explicitly disconnected this client
+                console.log('[Socket] Server disconnected the connection');
+            } else if (reason === 'io client disconnect') {
+                // Client called socket.disconnect()
+                console.log('[Socket] Client disconnected');
+            } else if (reason === 'transport close' || reason === 'transport error') {
+                // Network issue or server down - don't spam console
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[Socket] Connection lost - will auto-reconnect');
+                }
+            } else {
+                console.log('[Socket] Disconnected:', reason);
+            }
+        });
+
+        socketIO.on('reconnect_attempt', (attemptNumber) => {
+            if (process.env.NODE_ENV === 'development') {
+                console.log(`[Socket] Reconnection attempt ${attemptNumber}`);
+            }
+        });
+
+        socketIO.on('reconnect_failed', () => {
+            console.warn('[Socket] Reconnection failed after max attempts');
+            toast.error('Chat connection unavailable. Please refresh the page.', { 
+                duration: 5000,
+                icon: '🔌' 
+            });
         });
 
         socketIO.on('error', (error) => {
-            console.error('[Socket] Error:', error);
+            // Log errors silently in production, show in development
+            if (process.env.NODE_ENV === 'development') {
+                console.error('[Socket] Error:', error);
+            }
         });
 
         globalSocket = socketIO;
@@ -131,6 +198,7 @@ export const disconnectSocket = () => {
         globalSocket.disconnect();
         globalSocket = null;
         isConnecting = false;
+        reconnectAttempts = 0;
     }
 };
 
@@ -211,14 +279,14 @@ export function SocketEvents({ socket }: { socket: Socket }) {
         };
 
         const handleDisconnect = (reason: string) => {
-            if (reason === "io server disconnect") {
-                console.log("[Socket] Server disconnected:", reason);
-            }
+            // Disconnect is already handled in the main socket setup
+            // This is just for component-level handling if needed
         };
 
         const handleConnectError = (error: Error) => {
-            console.error("[Socket] Connection error:", error.message);
             const errorMessage = error.message.toLowerCase();
+            
+            // Only handle auth errors here - redirect to login
             if (errorMessage.includes('jwt expired') ||
                 errorMessage.includes('invalid token') ||
                 errorMessage.includes('unauthorized') ||
@@ -226,6 +294,7 @@ export function SocketEvents({ socket }: { socket: Socket }) {
                 disconnectSocket();
                 router.push('/login?expired=true');
             }
+            // Network errors are handled in the main socket setup
         };
 
         // Listen for incoming messages from socket

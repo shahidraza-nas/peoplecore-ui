@@ -18,4 +18,5 @@ export interface User extends SQLModel {
   last_login_at: string;
   permission_id: string;
   permissions: string[];
+  unread_messages_count?: number;
 }

@@ -60,11 +60,24 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       authorize: async (credentials) => {
         const { email, password, info } = credentials as any;
+        
+        // Parse info back from string
+        const parsedInfo = typeof info === 'string' ? JSON.parse(info) : info || { device: "web" };
 
+        console.log('[AUTH] Login attempt:', { email, parsedInfo });
+        
         const { data, error, message } = await API.Login<LoginResponseData>({
           username: email,
           password,
-          info: info || { device: "web" },
+          info: parsedInfo,
+        });
+
+        console.log('[AUTH] Backend response:', { 
+          data: !!data, 
+          error, 
+          message,
+          user: data?.user,
+          unread_count: data?.user?.unread_messages_count 
         });
 
         if (!!error) {

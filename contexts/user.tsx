@@ -7,9 +7,12 @@ import {
   useState,
   ReactNode,
   useCallback,
+  useRef,
 } from "react";
 import { useSession } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { API } from "@/lib/fetch";
+import { User as UserModel } from "@/models/user";
+import { useSocketContext } from "@/contexts/socket";
 
 interface User {
   id: string;
@@ -19,11 +22,23 @@ interface User {
   unread_messages_count?: number;
 }
 
+interface ApiMeResponse {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+    unread_messages_count?: number;
+    [key: string]: any;
+  };
+}
+
 interface UserContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
-  refetchUser: () => Promise<void>;
+  unreadCount: number;
+  refreshUnreadCount: () => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -32,10 +47,36 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   const { data: session, status } = useSession();
-  const pathname = usePathname();
+  const { socket } = useSocketContext();
+  const isFetchingRef = useRef(false);
+  const hasInitializedRef = useRef(false);
 
-  const fetchUser = useCallback(async () => {
+  const fetchUnreadCount = useCallback(async () => {
+    if (isFetchingRef.current) return;
+
+    isFetchingRef.current = true;
+    try {
+      const { data } = await API.Me<ApiMeResponse>();
+
+      const unreadCount = data?.user?.unread_messages_count ?? 0;
+      console.log('[UserContext] ✅ Unread count updated:', unreadCount);
+      setUnreadCount(unreadCount);
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('unread_count', String(unreadCount));
+        localStorage.setItem('unread_count_timestamp', String(Date.now()));
+      }
+    } catch (err) {
+      console.error('[UserContext] Failed to fetch unread count:', err);
+    } finally {
+      isFetchingRef.current = false;
+    }
+  }, []);
+
+  // Initialize user from session
+  useEffect(() => {
     if (status === "loading") {
       return;
     }
@@ -43,20 +84,37 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (!session?.user) {
       setLoading(false);
       setUser(null);
+      setUnreadCount(0);
+      hasInitializedRef.current = false;
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      setUser({
+
+      const mappedUser = {
         id: session.user.id || "",
         name: session.user.full_name || "",
         email: session.user.email || "",
         avatar: session.user.profile_image || undefined,
         unread_messages_count: session.user.unread_messages_count || 0,
-      });
+      };
+
+      setUser(mappedUser);
+
+      // Only set unread count from session on INITIAL load, not on every session update
+      if (!hasInitializedRef.current) {
+        const initialCount = session.user.unread_messages_count || 0;
+        console.log('[UserContext] 🎯 Initial load, setting count from session:', initialCount);
+        setUnreadCount(initialCount);
+        hasInitializedRef.current = true;
+      } else {
+        console.log('[UserContext] ⏭️ Session update, keeping current count');
+      }
+
     } catch (err) {
+      console.error('Error initializing user:', err);
       setError("An error occurred while fetching user details");
       setUser(null);
     } finally {
@@ -65,29 +123,70 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [session, status]);
 
   useEffect(() => {
-    fetchUser();
-  }, [fetchUser]);
+    if (typeof window === 'undefined' || !user?.id) return;
 
-  useEffect(() => {
-    const handleChatRead = () => {
-      fetchUser();
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'unread_count' && e.newValue) {
+        setUnreadCount(parseInt(e.newValue, 10));
+      }
     };
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('chat-read', handleChatRead);
-      return () => window.removeEventListener('chat-read', handleChatRead);
-    }
-  }, [fetchUser]);
+    window.addEventListener('storage', handleStorageChange);
 
-  const refetchUser = useCallback(async () => {
-    await fetchUser();
-  }, [fetchUser]);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !user?.id) return;
+
+    const handleChatRead = () => {
+      console.log('[UserContext] 📖 chat-read event received, fetching count...');
+      fetchUnreadCount();
+    };
+
+    const handleMessageReceived = () => {
+      console.log('[UserContext] 📬 message-received event received, fetching count...');
+      fetchUnreadCount();
+    };
+
+    window.addEventListener('chat-read', handleChatRead);
+    window.addEventListener('message-received', handleMessageReceived);
+
+    return () => {
+      window.removeEventListener('chat-read', handleChatRead);
+      window.removeEventListener('message-received', handleMessageReceived);
+    };
+  }, [user?.id, fetchUnreadCount]);
+
+  useEffect(() => {
+    if (!socket || !user?.id) return;
+
+    const handleMessagesRead = (data: { chatUid: string; readBy: number }) => {
+      console.log('[UserContext] 📨 Socket messages.read event received:', data);
+      fetchUnreadCount();
+    };
+
+    socket.on('messages.read', handleMessagesRead);
+
+    return () => {
+      socket.off('messages.read', handleMessagesRead);
+    };
+  }, [socket, user?.id, fetchUnreadCount]);
+
+  const refreshUnreadCount = useCallback(async () => {
+    if (user?.id) {
+      await fetchUnreadCount();
+    }
+  }, [user?.id, fetchUnreadCount]);
 
   const value: UserContextType = {
     user,
     loading,
     error,
-    refetchUser,
+    unreadCount,
+    refreshUnreadCount,
   };
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;

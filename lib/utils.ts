@@ -34,5 +34,6 @@ export const getSessionProps = (user: any) => {
     active: user.active,
     enable_2fa: user.enable_2fa,
     provider: user.provider,
+    unread_messages_count: user.unread_messages_count || 0,
   };
 }

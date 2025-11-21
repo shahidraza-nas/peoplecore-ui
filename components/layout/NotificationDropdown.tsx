@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Bell, Check, MessageSquare, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     DropdownMenu,
@@ -28,7 +29,7 @@ interface UnreadMessageGroup {
 
 export function NotificationDropdown() {
     const router = useRouter();
-    const { user, refetchUser } = useUser();
+    const { user, unreadCount, refreshUnreadCount } = useUser();
     const { socket } = useSocketContext();
     const [unreadGroups, setUnreadGroups] = useState<UnreadMessageGroup[]>([]);
     const [loading, setLoading] = useState(false);
@@ -40,8 +41,7 @@ export function NotificationDropdown() {
 
         setLoading(true);
         try {
-            // Fetch all chats without where filter to avoid backend error
-            const { data } = await API.Get('chat/chats', {
+            const { data } = await API.Get('chat', {
                 offset: 0,
                 limit: 50,
                 populate: ['user1', 'user2']
@@ -51,16 +51,14 @@ export function NotificationDropdown() {
             if (responseData && responseData.chats && Array.isArray(responseData.chats)) {
                 const groups: UnreadMessageGroup[] = [];
 
-                // Filter chats with unread messages on client side
                 const unreadChats = (responseData.chats as Chat[]).filter(
                     chat => chat.unread_count && chat.unread_count > 0
                 );
 
                 for (const chat of unreadChats) {
-                    // Fetch only the latest unread message (not all)
                     const messagesResponse = await API.Get(`chat/${chat.uid}/messages`, {
                         offset: 0,
-                        limit: 5, // Limit to 5 latest messages instead of all unread
+                        limit: chat.unread_count || 10,
                         populate: ['fromUser']
                     });
 
@@ -69,10 +67,7 @@ export function NotificationDropdown() {
                         Array.isArray(messagesData.messages) &&
                         messagesData.messages.length > 0) {
                         const otherUser = chat.user1Id === Number(user.id) ? chat.user2 : chat.user1;
-                        
-                        // Filter only unread messages
                         const unreadMessages = messagesData.messages.filter((msg: ChatMessage) => !msg.isRead);
-                        
                         if (unreadMessages.length > 0) {
                             groups.push({
                                 chat,
@@ -92,12 +87,11 @@ export function NotificationDropdown() {
         }
     };
 
-    // Fetch when dropdown opens
     useEffect(() => {
         if (open && user && !loading) {
             fetchUnreadMessages();
+            refreshUnreadCount();
         }
-        // Cleanup function
         return () => {
             if (fetchTimeoutRef.current) {
                 clearTimeout(fetchTimeoutRef.current);
@@ -106,26 +100,33 @@ export function NotificationDropdown() {
         };
     }, [open]);
 
-    // Listen for new messages - only refetch user context, not the full list
+    // Listen for socket events
     useEffect(() => {
         if (!socket) return;
-        
+
         const handleNewMessage = (data: any) => {
-            // Only refetch user context to update badge count
-            refetchUser();
-            // If dropdown is open, debounce the refresh
+            // Immediately refresh unread count
+            refreshUnreadCount();
+
+            // Trigger custom event for cross-tab sync
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('message-received'));
+            }
+
+            // Refresh dropdown list if open
             if (open && !loading) {
                 if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
                 fetchTimeoutRef.current = setTimeout(() => {
                     fetchUnreadMessages();
-                }, 1000); // Debounce 1 second
+                }, 500);
             }
         };
-        
-        socket.on('message:new', handleNewMessage);
-        
+
+        // Backend emits 'user.message' event (not 'message:new')
+        socket.on('user.message', handleNewMessage);
+
         return () => {
-            socket.off('message:new', handleNewMessage);
+            socket.off('user.message', handleNewMessage);
             if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
         };
     }, [socket, open, loading]);
@@ -136,16 +137,18 @@ export function NotificationDropdown() {
         try {
             await markChatAsRead(chatUid);
             setUnreadGroups(prev => prev.filter(g => g.chat.uid !== chatUid));
-            await refetchUser();
+            
+            // Refresh unread count immediately
+            await refreshUnreadCount();
+            
+            // Trigger custom event for cross-tab sync
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('chat-read'));
             }
         } catch (error) {
-            console.error('Failed to mark messages as read:', error);
+            console.error('[NotificationDropdown] Failed to mark messages as read:', error);
         }
-    };
-
-    const handleOpenChat = (chatUid: string) => {
+    };    const handleOpenChat = (chatUid: string) => {
         setOpen(false);
         router.push(`/chat?uid=${chatUid}`);
     };
@@ -156,17 +159,20 @@ export function NotificationDropdown() {
             await Promise.all(promises);
 
             setUnreadGroups([]);
-            await refetchUser();
+            
+            // Refresh unread count immediately
+            await refreshUnreadCount();
 
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('chat-read'));
             }
         } catch (error) {
-            console.error('Failed to mark all as read:', error);
+            console.error('[NotificationDropdown] Failed to mark all as read:', error);
         }
-    };
-
-    const totalUnread = user?.unread_messages_count || 0;
+    };    // Don't render if user is not logged in
+    if (!user) {
+        return null;
+    }
 
     return (
         <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -176,11 +182,25 @@ export function NotificationDropdown() {
                     size="icon"
                     className="relative"
                 >
-                    <Bell className="h-5 w-5" />
-                    {totalUnread !== undefined && totalUnread > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-                            {totalUnread > 99 ? '99+' : totalUnread}
-                        </span>
+                    <Bell className={cn(
+                        "h-5 w-5 transition-colors",
+                        unreadCount > 0 && "text-red-600 dark:text-red-500"
+                    )} />
+                    {/* Badge visible: {unreadCount > 0 ? 'YES' : 'NO'}, count: {unreadCount} */}
+                    {unreadCount > 0 && (
+                        <>
+                            {/* Badge with count */}
+                            <Badge
+                                variant="destructive"
+                                className="absolute -top-1 -right-1 h-5 min-w-5 px-1 text-[10px] font-bold pointer-events-none z-10"
+                            >
+                                {unreadCount > 99 ? '99+' : unreadCount}
+                            </Badge>
+                            {/* Pulsing animation */}
+                            <span className="absolute -top-1 -right-1 flex h-5 w-5 pointer-events-none">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
+                            </span>
+                        </>
                     )}
                 </Button>
             </DropdownMenuTrigger>
@@ -269,9 +289,9 @@ export function NotificationDropdown() {
                                                     <Check className="h-3 w-3 mr-1" />
                                                     Mark read
                                                 </Button>
-                                                <span className="flex h-5 px-2 items-center justify-center rounded-full bg-blue-600 text-[10px] font-semibold text-white">
+                                                <Badge variant="default" className="h-5 px-2 text-[10px]">
                                                     {group.messages.length}
-                                                </span>
+                                                </Badge>
                                             </div>
                                         </div>
                                     </div>
