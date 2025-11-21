@@ -64,6 +64,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.log('[UserContext] ✅ Unread count updated:', unreadCount);
       setUnreadCount(unreadCount);
 
+      setUser((prev) => {
+        if (!prev) return prev;
+        return { ...prev, unread_messages_count: unreadCount };
+      });
+
       if (typeof window !== 'undefined') {
         localStorage.setItem('unread_count', String(unreadCount));
         localStorage.setItem('unread_count_timestamp', String(Date.now()));

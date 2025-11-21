@@ -41,10 +41,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 setPermission(currentPermission);
 
                 if (currentPermission === 'granted' && !existingToken) {
-                    const token = await requestNotificationPermission();
-                    if (token) {
-                        setFcmToken(token);
-                        saveFcmTokenToStorage(token);
+                    try {
+                        const token = await requestNotificationPermission();
+                        if (token) {
+                            setFcmToken(token);
+                            saveFcmTokenToStorage(token);
+                        }
+                    } catch (tokenError) {
+                        console.warn('Failed to get FCM token (non-critical):', tokenError);
+                        // Don't throw - app can work without push notifications
                     }
                 }
 
@@ -68,7 +73,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
                 return unsubscribe;
             } catch (err) {
-                console.error('Unable to initialize notifications:', err);
+                console.warn('Unable to initialize notifications (non-critical):', err);
+                // Don't block app initialization if notifications fail
             }
         };
 

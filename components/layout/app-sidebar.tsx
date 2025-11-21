@@ -31,17 +31,10 @@ export function AppSidebar() {
                                 : "text-zinc-500 dark:text-zinc-400"
                         )}
                     >
-                        <div className="relative inline-flex">
-                            <item.icon className={cn(
-                                "w-6 h-6",
-                                pathname === item.path && "fill-current"
-                            )} />
-                            {item.name === "Chat" && user?.unread_messages_count !== undefined && user.unread_messages_count > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-semibold text-white ring-2 ring-white dark:ring-zinc-900">
-                                    {user.unread_messages_count > 99 ? '99+' : user.unread_messages_count}
-                                </span>
-                            )}
-                        </div>
+                        <item.icon className={cn(
+                            "w-6 h-6",
+                            pathname === item.path && "fill-current"
+                        )} />
                         <span className="text-xs font-medium">{item.name}</span>
                     </button>
                 ))}

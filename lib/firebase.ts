@@ -53,18 +53,38 @@ export const requestNotificationPermission = async (): Promise<string | null> =>
     const messaging = getFirebaseMessaging();
     if (!messaging) return null;
 
-    // Register service worker
+    // Register service worker with timeout
     if ("serviceWorker" in navigator) {
-      const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
-      console.log("Service Worker registered successfully:", registration);
-      
-      // Wait for service worker to be ready
-      await navigator.serviceWorker.ready;
+      try {
+        // Check if service worker is already registered
+        const existingRegistration = await navigator.serviceWorker.getRegistration("/firebase-messaging-sw.js");
+        
+        if (!existingRegistration) {
+          const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js", {
+            scope: "/",
+          });
+          console.log("Service Worker registered successfully:", registration);
+        } else {
+          console.log("Service Worker already registered:", existingRegistration);
+        }
+        
+        // Wait for service worker to be ready with timeout
+        const readyPromise = navigator.serviceWorker.ready;
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Service worker ready timeout")), 5000)
+        );
+        
+        await Promise.race([readyPromise, timeoutPromise]);
+      } catch (swError) {
+        console.warn("Service worker registration issue:", swError);
+        // Continue anyway - FCM might still work
+      }
     }
 
     // Get FCM token
     const currentToken = await getToken(messaging, {
       vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+      serviceWorkerRegistration: await navigator.serviceWorker.getRegistration(),
     });
 
     if (currentToken) {

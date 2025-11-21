@@ -50,11 +50,6 @@ export function Sidebar() {
                     >
                         <item.icon className="w-4 h-4 mr-3" />
                         <span className="hidden sm:inline">{item.name}</span>
-                        {item.name === "Chat" && user?.unread_messages_count !== undefined && user.unread_messages_count > 0 && (
-                            <span className="absolute top-1 right-1 sm:relative sm:top-0 sm:right-0 sm:ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
-                                {user.unread_messages_count > 99 ? '99+' : user.unread_messages_count}
-                            </span>
-                        )}
                     </Button>
                 ))}
             </nav>
