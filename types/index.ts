@@ -6,3 +6,4 @@ export * from './api.type';
 export * from './dashboard.type';
 export * from './newsfeed.type';
 export * from './employee.type';
+export * from './subscription.type';
