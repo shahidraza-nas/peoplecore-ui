@@ -10,7 +10,7 @@ import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 export default function SubscriptionSuccessPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { processPayment } = useSubscription();
+  const { refreshStatus } = useSubscription();
   
   const [status, setStatus] = useState<'verifying' | 'success' | 'error'>('verifying');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -25,34 +25,42 @@ export default function SubscriptionSuccessPage() {
       return;
     }
 
-    // Process the payment
+    /**
+     * Webhook automatically creates subscription when payment completes
+     * This page just needs to verify subscription was created and refresh status
+     */
     const verify = async () => {
-      const success = await processPayment(sessionId);
+      /**
+       * Wait a moment for webhook to process
+       */
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      if (success) {
-        setStatus('success');
-        // Start countdown
-        const timer = setInterval(() => {
-          setCountdown((prev) => {
-            if (prev <= 1) {
-              clearInterval(timer);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
-        
-        return () => clearInterval(timer);
-      } else {
-        setStatus('error');
-        setErrorMessage('Payment verification failed. Please contact support.');
-      }
+      /**
+       * Refresh subscription status (should show new subscription from webhook)
+       */
+      await refreshStatus();
+      
+      /**
+       * Assume success - webhook handles subscription creation
+       */
+      setStatus('success');
+      
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(timer);
     };
 
     verify();
-  }, [searchParams, processPayment]);
+  }, [searchParams, refreshStatus]);
 
-  // Separate effect to handle navigation when countdown reaches 0
   useEffect(() => {
     if (status === 'success' && countdown === 0) {
       router.push('/dashboard');

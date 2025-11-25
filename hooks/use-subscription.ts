@@ -36,8 +36,8 @@ export function useSubscription(): UseSubscriptionReturn {
     const [error, setError] = useState<ApiError | null>(null);
 
     /**
-   * Calculate days remaining and grace period status
-   */
+    * Calculate days remaining and grace period status
+    */
     const calculateDaysRemaining = useCallback((sub: Subscription | null) => {
         if (!sub) {
             setDaysRemaining(null);
@@ -48,14 +48,18 @@ export function useSubscription(): UseSubscriptionReturn {
         const now = new Date();
         const periodEnd = new Date(sub.current_period_end);
         const gracePeriodEnd = new Date(periodEnd);
-        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 3); // 3-day grace period
-
+        /**
+         * 3-day grace period
+         */
+        gracePeriodEnd.setDate(gracePeriodEnd.getDate() + 3);
         const daysToEnd = Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
         const daysToGraceEnd = Math.ceil((gracePeriodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
         setDaysRemaining(daysToEnd);
 
-        // User is in grace period if subscription ended but grace period hasn't
+        /**
+         * User is in grace period if subscription ended but grace period hasn't
+         */
         setIsInGracePeriod(
             sub.status === SubscriptionStatus.ACTIVE &&
             daysToEnd < 0 &&
