@@ -9,10 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Loader2, 
-  CalendarDays, 
-  CreditCard, 
+import {
+  Loader2,
+  CalendarDays,
+  CreditCard,
   AlertCircle,
   CheckCircle2,
   XCircle,
@@ -44,16 +44,16 @@ import {
 export default function SubscriptionPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { 
-    subscription, 
-    hasAccess, 
-    daysRemaining, 
+  const {
+    subscription,
+    hasAccess,
+    daysRemaining,
     isInGracePeriod,
-    loading, 
+    loading,
     refreshStatus,
-    cancelSubscription 
+    cancelSubscription
   } = useSubscription();
-  
+
   const [cancelling, setCancelling] = useState(false);
   const [history, setHistory] = useState<Subscription[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -77,7 +77,7 @@ export default function SubscriptionPage() {
     setCancelling(true);
     const success = await cancelSubscription();
     setCancelling(false);
-    
+
     if (success) {
       await refreshStatus();
     }
@@ -95,7 +95,7 @@ export default function SubscriptionPage() {
 
   const getDaysRemainingProgress = () => {
     if (!subscription || !daysRemaining) return 0;
-    
+
     const totalDays = 30; // Assuming monthly subscription
     const progress = ((totalDays - Math.abs(daysRemaining)) / totalDays) * 100;
     return Math.min(Math.max(progress, 0), 100);
@@ -223,7 +223,7 @@ export default function SubscriptionPage() {
                 </span>
               </div>
               <Progress value={getDaysRemainingProgress()} className="h-2" />
-              
+
               {isInGracePeriod && (
                 <div className="flex items-center gap-2 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
                   <AlertCircle className="w-4 h-4 text-orange-600" />
@@ -346,7 +346,7 @@ export default function SubscriptionPage() {
                 </TableHeader>
                 <TableBody>
                   {history.map((sub) => (
-                    <TableRow key={sub.id}>
+                    <TableRow key={sub.uid}>
                       <TableCell className="font-medium">
                         {format(new Date(sub.created_at), 'MMM dd, yyyy')}
                       </TableCell>
