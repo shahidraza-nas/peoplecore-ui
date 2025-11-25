@@ -16,7 +16,14 @@ import {
   AlertCircle,
   CheckCircle2,
   XCircle,
-  RefreshCw
+  RefreshCw,
+  Sparkles,
+  Crown,
+  Zap,
+  Shield,
+  TrendingUp,
+  Clock,
+  DollarSign
 } from "lucide-react";
 import { SubscriptionStatus as Status, Subscription } from "@/types";
 import { format } from "date-fns";
@@ -40,6 +47,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 export default function SubscriptionPage() {
   const router = useRouter();
@@ -104,7 +112,10 @@ export default function SubscriptionPage() {
   if (loading && !subscription) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-10 h-10 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading subscription...</p>
+        </div>
       </div>
     );
   }
@@ -112,23 +123,48 @@ export default function SubscriptionPage() {
   // Admin view
   if (user?.role === 'Admin') {
     return (
-      <div className="space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Subscription</h1>
-          <p className="text-zinc-500">You have admin access to all features</p>
+      <div className="space-y-8 max-w-4xl mx-auto py-8">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-500 via-violet-500 to-indigo-600 p-8 md:p-12 text-white">
+          <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl">
+                <Crown className="w-8 h-8" />
+              </div>
+              <Badge className="bg-yellow-500 text-yellow-950 hover:bg-yellow-400 border-0">
+                ADMIN
+              </Badge>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold mb-3">Administrator Access</h1>
+            <p className="text-lg text-white/90 max-w-2xl">
+              You have unrestricted access to all premium features without requiring a subscription.
+            </p>
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              <CardTitle>Admin Access</CardTitle>
-            </div>
-            <CardDescription>
-              As an administrator, you have unrestricted access to all chat features without requiring a subscription.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+        {/* Features Grid */}
+        <div className="grid md:grid-cols-3 gap-4">
+          {[
+            { icon: Shield, title: "Full Access", desc: "All features unlocked" },
+            { icon: Zap, title: "No Limits", desc: "Unlimited usage" },
+            { icon: Sparkles, title: "Premium Support", desc: "Priority assistance" }
+          ].map((feature, i) => (
+            <Card key={i} className="border-2 hover:border-primary/50 transition-colors">
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center text-center gap-3">
+                  <div className="p-3 rounded-2xl bg-primary/10">
+                    <feature.icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-1">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground">{feature.desc}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -136,26 +172,88 @@ export default function SubscriptionPage() {
   // No subscription
   if (!subscription) {
     return (
-      <div className="space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Subscription</h1>
-          <p className="text-zinc-500">Manage your subscription and billing</p>
+      <div className="space-y-8 max-w-5xl mx-auto py-8">
+        {/* Hero Card */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500 p-8 md:p-12 text-white">
+          <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
+          <div className="absolute top-20 right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-10 left-10 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
+          
+          <div className="relative z-10">
+            <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 mb-4">
+              <Sparkles className="w-3 h-3 mr-1" />
+              Get Started
+            </Badge>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+              Unlock Premium Chat Features
+            </h1>
+            <p className="text-lg text-white/90 max-w-2xl mb-8">
+              Subscribe now to access real-time messaging, unlimited conversations, and exclusive features designed for seamless communication.
+            </p>
+            
+            <Button 
+              onClick={() => router.push('/subscription/checkout')} 
+              size="lg"
+              className="bg-white text-cyan-600 hover:bg-white/90 font-semibold h-12 px-8"
+            >
+              <CreditCard className="mr-2 h-5 w-5" />
+              Start Your Subscription
+            </Button>
+          </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-orange-600" />
-              <CardTitle>No Active Subscription</CardTitle>
-            </div>
-            <CardDescription>
-              Subscribe now to access chat features
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* Features Section */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {[
+            {
+              icon: Zap,
+              title: "Real-Time Messaging",
+              description: "Instant message delivery with live typing indicators and read receipts"
+            },
+            {
+              icon: Shield,
+              title: "Secure & Private",
+              description: "End-to-end encrypted conversations with enterprise-grade security"
+            },
+            {
+              icon: TrendingUp,
+              title: "Unlimited Chats",
+              description: "No limits on conversations, messages, or file sharing"
+            },
+            {
+              icon: Clock,
+              title: "Message History",
+              description: "Access complete chat history with powerful search capabilities"
+            }
+          ].map((feature, i) => (
+            <Card key={i} className="group hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50">
+              <CardContent className="p-6">
+                <div className="flex gap-4">
+                  <div className="flex-shrink-0 p-3 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <feature.icon className="w-6 h-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* CTA Card */}
+        <Card className="border-2 border-dashed border-primary/50 bg-primary/5">
+          <CardContent className="p-8 text-center">
+            <AlertCircle className="w-12 h-12 text-primary mx-auto mb-4" />
+            <h3 className="text-xl font-semibold mb-2">Ready to get started?</h3>
+            <p className="text-muted-foreground mb-6">
+              Join thousands of users enjoying seamless communication
+            </p>
             <Button onClick={() => router.push('/subscription/checkout')} size="lg">
-              <CreditCard className="mr-2 h-4 w-4" />
-              Subscribe Now
+              View Pricing Plans
             </Button>
           </CardContent>
         </Card>
@@ -165,207 +263,341 @@ export default function SubscriptionPage() {
 
   // Has subscription
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-6xl mx-auto py-8">
+      {/* Header with Refresh */}
       <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">Subscription</h1>
-          <p className="text-zinc-500">Manage your subscription and billing</p>
+        <div>
+          <h1 className="text-4xl font-bold tracking-tight mb-2">My Subscription</h1>
+          <p className="text-muted-foreground">Manage your plan and billing preferences</p>
         </div>
         <Button onClick={refreshStatus} variant="outline" size="sm" disabled={loading}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
           Refresh
         </Button>
       </div>
 
-      {/* Subscription Status Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Subscription Status</CardTitle>
-            {getStatusBadge(subscription.status)}
-          </div>
-          <CardDescription>
-            {subscription.plan_type === 'chat_monthly' ? 'Monthly' : 'Yearly'} Plan
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Period Information */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-zinc-500">
-                <CalendarDays className="w-4 h-4" />
-                Period Start
+      {/* Premium Status Hero */}
+      <div className={cn(
+        "relative overflow-hidden rounded-3xl p-8 md:p-10 text-white transition-all duration-300",
+        subscription.status === Status.ACTIVE 
+          ? "bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600"
+          : subscription.status === Status.EXPIRED
+          ? "bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-600"
+          : "bg-gradient-to-br from-zinc-500 via-gray-500 to-slate-600"
+      )}>
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
+        <div className="absolute top-10 right-10 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
+        
+        <div className="relative z-10">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl">
+                <Crown className="w-7 h-7" />
               </div>
-              <p className="font-medium">
-                {format(new Date(subscription.current_period_start), 'PPP')}
-              </p>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm text-zinc-500">
-                <CalendarDays className="w-4 h-4" />
-                Period End
-              </div>
-              <p className="font-medium">
-                {format(new Date(subscription.current_period_end), 'PPP')}
-              </p>
-            </div>
-          </div>
-
-          {/* Days Remaining */}
-          {subscription.status === Status.ACTIVE && daysRemaining !== null && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">
-                  {daysRemaining > 0 ? `${daysRemaining} days remaining` : 'Expired'}
-                </span>
-                <span className="text-sm text-zinc-500">
-                  {Math.round(getDaysRemainingProgress())}%
-                </span>
-              </div>
-              <Progress value={getDaysRemainingProgress()} className="h-2" />
-
-              {isInGracePeriod && (
-                <div className="flex items-center gap-2 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-                  <AlertCircle className="w-4 h-4 text-orange-600" />
-                  <p className="text-sm text-orange-700 dark:text-orange-300">
-                    You're in the 3-day grace period. Renew soon to continue using chat features.
-                  </p>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-2xl md:text-3xl font-bold">
+                    {subscription.plan_type === 'chat_monthly' ? 'Monthly Premium' : 'Yearly Premium'}
+                  </h2>
+                  {getStatusBadge(subscription.status)}
                 </div>
-              )}
+                <p className="text-white/80 text-sm">
+                  {subscription.status === Status.ACTIVE && daysRemaining !== null && daysRemaining > 0
+                    ? `${daysRemaining} days remaining in your billing cycle`
+                    : subscription.status === Status.EXPIRED
+                    ? 'Your subscription has expired'
+                    : 'Subscription status updated'}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-right hidden md:block">
+              <div className="text-white/70 text-sm mb-1">Total Paid</div>
+              <div className="text-3xl font-bold">
+                ${subscription.amount}
+              </div>
+              <div className="text-white/70 text-xs uppercase">
+                {subscription.currency}
+              </div>
+            </div>
+          </div>
+
+          {/* Progress Bar for Active Subscriptions */}
+          {subscription.status === Status.ACTIVE && daysRemaining !== null && daysRemaining > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-white/90 font-medium">Billing Cycle Progress</span>
+                <span className="text-white/70">{Math.round(getDaysRemainingProgress())}%</span>
+              </div>
+              <div className="h-3 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+                <div 
+                  className="h-full bg-white rounded-full transition-all duration-500"
+                  style={{ width: `${getDaysRemainingProgress()}%` }}
+                />
+              </div>
             </div>
           )}
 
-          <Separator />
+          {/* Grace Period Warning */}
+          {isInGracePeriod && (
+            <div className="mt-4 flex items-center gap-3 p-4 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <p className="text-sm">
+                <strong>Grace Period Active:</strong> Renew within 3 days to maintain uninterrupted access to chat features.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
 
-          {/* Amount */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-500">Amount Paid</span>
-            <span className="text-lg font-bold">
-              ${subscription.amount} {subscription.currency.toUpperCase()}
-            </span>
-          </div>
+      {/* Subscription Details Grid */}
+      <div className="grid md:grid-cols-3 gap-4">
+        <Card className="border-2">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                <CalendarDays className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <h3 className="font-semibold">Period Start</h3>
+            </div>
+            <p className="text-2xl font-bold">
+              {format(new Date(subscription.current_period_start), 'MMM dd')}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {format(new Date(subscription.current_period_start), 'yyyy')}
+            </p>
+          </CardContent>
+        </Card>
 
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
+        <Card className="border-2">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="font-semibold">Period End</h3>
+            </div>
+            <p className="text-2xl font-bold">
+              {format(new Date(subscription.current_period_end), 'MMM dd')}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {format(new Date(subscription.current_period_end), 'yyyy')}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              <h3 className="font-semibold">Amount Paid</h3>
+            </div>
+            <p className="text-2xl font-bold">
+              ${subscription.amount}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1 uppercase">
+              {subscription.currency}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Access Status & Actions */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Chat Access Status */}
+        <Card className="border-2 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+          <CardHeader className="relative z-10">
+            <CardTitle className="flex items-center gap-2">
+              {hasAccess ? (
+                <>
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <span>Access Enabled</span>
+                </>
+              ) : (
+                <>
+                  <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+                    <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <span>Access Disabled</span>
+                </>
+              )}
+            </CardTitle>
+            <CardDescription>
+              {hasAccess 
+                ? 'You have full access to all chat features'
+                : 'Renew subscription to restore access'
+              }
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <div className="space-y-3">
+              {[
+                { label: 'Real-time Messaging', enabled: hasAccess },
+                { label: 'Message History', enabled: hasAccess },
+                { label: 'Read Receipts', enabled: hasAccess },
+              ].map((feature, i) => (
+                <div key={i} className="flex items-center justify-between py-2">
+                  <span className="text-sm text-muted-foreground">{feature.label}</span>
+                  {feature.enabled ? (
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <XCircle className="w-4 h-4 text-red-400" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card className="border-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              Manage Subscription
+            </CardTitle>
+            <CardDescription>
+              Control your subscription settings
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {subscription.status === Status.EXPIRED || subscription.status === Status.CANCELLED ? (
-              <Button onClick={() => router.push('/subscription/checkout')} className="flex-1">
+              <Button 
+                onClick={() => router.push('/subscription/checkout')} 
+                className="w-full h-12"
+                size="lg"
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
                 Renew Subscription
               </Button>
             ) : subscription.status === Status.ACTIVE ? (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive" className="flex-1" disabled={cancelling}>
-                    {cancelling ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Cancelling...
-                      </>
-                    ) : (
-                      <>
-                        <XCircle className="mr-2 h-4 w-4" />
-                        Cancel Subscription
-                      </>
-                    )}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will cancel your subscription immediately. You will lose access to chat features.
-                      This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleCancelSubscription} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Cancel Subscription
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <>
+                <Button 
+                  onClick={() => router.push('/subscription/checkout')} 
+                  variant="outline"
+                  className="w-full"
+                >
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                  Upgrade Plan
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="w-full" disabled={cancelling}>
+                      {cancelling ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Cancelling...
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Cancel Subscription
+                        </>
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will cancel your subscription immediately. You will lose access to chat features.
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleCancelSubscription} 
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Yes, Cancel
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             ) : null}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Access Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Chat Access</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-3">
-            {hasAccess ? (
-              <>
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-                <div>
-                  <p className="font-medium">Active</p>
-                  <p className="text-sm text-zinc-500">You have access to chat features</p>
-                </div>
-              </>
-            ) : (
-              <>
-                <XCircle className="w-5 h-5 text-red-600" />
-                <div>
-                  <p className="font-medium">Inactive</p>
-                  <p className="text-sm text-zinc-500">Subscribe to access chat features</p>
-                </div>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Payment History */}
-      <Card>
+      <Card className="border-2">
         <CardHeader>
-          <CardTitle>Payment History</CardTitle>
-          <CardDescription>Your subscription payment history</CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+              <CreditCard className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <CardTitle>Payment History</CardTitle>
+              <CardDescription>Your subscription payment records</CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loadingHistory ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-zinc-500" />
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
+              <p className="text-sm text-muted-foreground">Loading history...</p>
             </div>
           ) : history.length === 0 ? (
-            <div className="text-center py-8 text-zinc-500">
-              <p>No payment history found</p>
+            <div className="text-center py-12">
+              <div className="p-4 rounded-full bg-muted inline-block mb-4">
+                <CreditCard className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <h3 className="font-semibold mb-2">No payment history yet</h3>
+              <p className="text-sm text-muted-foreground">
+                Your transaction records will appear here
+              </p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Plan</TableHead>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {history.map((sub) => (
-                    <TableRow key={sub.uid}>
-                      <TableCell className="font-medium">
-                        {format(new Date(sub.created_at), 'MMM dd, yyyy')}
-                      </TableCell>
-                      <TableCell>
-                        {sub.plan_type === 'chat_monthly' ? 'Monthly' : 'Yearly'}
-                      </TableCell>
-                      <TableCell className="text-sm text-zinc-500">
+            <div className="space-y-3">
+              {history.map((sub, index) => (
+                <div 
+                  key={sub.uid}
+                  className={cn(
+                    "p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md",
+                    index === 0 ? "bg-primary/5 border-primary/20" : "bg-muted/30"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-lg bg-background">
+                        <CalendarDays className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">
+                          {format(new Date(sub.created_at), 'MMMM dd, yyyy')}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {sub.plan_type === 'chat_monthly' ? 'Monthly Plan' : 'Yearly Plan'}
+                        </p>
+                      </div>
+                    </div>
+                    {getStatusBadge(sub.status)}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 pt-3 border-t">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Period</p>
+                      <p className="text-sm font-medium">
                         {format(new Date(sub.current_period_start), 'MMM dd')} - {format(new Date(sub.current_period_end), 'MMM dd, yyyy')}
-                      </TableCell>
-                      <TableCell>
-                        ${sub.amount} {sub.currency.toUpperCase()}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(sub.status)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground mb-1">Amount</p>
+                      <p className="text-lg font-bold text-primary">
+                        ${sub.amount}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
