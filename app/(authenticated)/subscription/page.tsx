@@ -477,14 +477,6 @@ export default function SubscriptionPage() {
               </Button>
             ) : subscription.status === Status.ACTIVE ? (
               <>
-                <Button 
-                  onClick={() => router.push('/subscription/checkout')} 
-                  variant="outline"
-                  className="w-full"
-                >
-                  <TrendingUp className="mr-2 h-4 w-4" />
-                  Upgrade Plan
-                </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" className="w-full" disabled={cancelling}>

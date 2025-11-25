@@ -46,14 +46,23 @@ export default function CheckoutPage() {
 
   const handleSubscribe = async () => {
     const plan = plans.find((p) => p.id === selectedPlan);
-    if (!plan) return;
+    if (!plan) {
+      console.error("Selected plan not found");
+      return;
+    }
+
+    console.log("Creating checkout session with:", {
+      amount: plan.price,
+      planType: selectedPlan,
+    });
 
     const sessionId = await createCheckout({
       amount: plan.price,
       planType: selectedPlan,
     });
+    
     if (!sessionId && !loading) {
-      console.error("Failed to create checkout session");
+      console.error("Failed to create checkout session - no session ID returned");
     }
   };
 

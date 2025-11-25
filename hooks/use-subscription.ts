@@ -102,34 +102,45 @@ export function useSubscription(): UseSubscriptionReturn {
     const createCheckout = useCallback(async (data?: { amount?: number; planType?: string }) => {
         setLoading(true);
         setError(null);
-
         const toastId = toast.loading('Creating checkout session...');
-
         try {
             const response = await API.CreateCheckoutSession(data || {});
-
             if (response.error) {
                 throw response.error;
             }
-
             const checkoutData = response.data as CheckoutSessionResponse;
-
             toast.success('Redirecting to payment...', {
                 id: toastId,
             });
-
-            // Redirect to Stripe checkout
             if (checkoutData.sessionUrl) {
                 window.location.href = checkoutData.sessionUrl;
                 return checkoutData.sessionId;
             }
 
             throw new Error('No session URL returned');
-        } catch (err) {
+        } catch (err: any) {
             const apiError = err as ApiError;
             setError(apiError);
-            toast.error(apiError.message || 'Failed to create checkout session', {
-                id: toastId
+            let errorMessage = 'Failed to create checkout session';
+            if (typeof err === 'string') {
+                errorMessage = err;
+            } else if (err?.message) {
+                errorMessage = err.message;
+            } else if (err?.error) {
+                if (typeof err.error === 'string') {
+                    errorMessage = err.error;
+                } else if (err.error?.message) {
+                    errorMessage = err.error.message;
+                }
+            }
+            console.error('Checkout session error details:', {
+                error: err,
+                apiError,
+                message: errorMessage
+            });
+            toast.error(errorMessage, {
+                id: toastId,
+                duration: 5000,
             });
             return null;
         } finally {
