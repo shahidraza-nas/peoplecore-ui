@@ -222,7 +222,17 @@ export const useChat = (user: User | null): UseChatReturn => {
         try {
             const response = await getMyChats({ offset: 0, limit: 50 });
             if (!response.success || response.error) {
-                toast.error('Failed to load chats');
+                const error = response.error;
+                const isSubscriptionError = 
+                    error === 'SUBSCRIPTION_REQUIRED' ||
+                    (typeof error === 'string' && error.toLowerCase().includes('subscription')) ||
+                    (typeof error === 'object' && error?.error === 'SUBSCRIPTION_REQUIRED') ||
+                    (typeof error === 'object' && error?.message?.toLowerCase().includes('subscription'));
+                if (isSubscriptionError) {
+                    toast.error('Active subscription required to access chat features');
+                } else {
+                    toast.error('Unable to load your conversations. Please try again.');
+                }
                 return;
             }
             const loadedChats = response.data?.chats || [];
@@ -234,7 +244,8 @@ export const useChat = (user: User | null): UseChatReturn => {
             setChats(sortedChats);
             chatsLoaded.current = true;
         } catch (error) {
-            toast.error('Failed to load chats');
+            console.error('Error loading chats:', error);
+            toast.error('Unable to connect to chat service. Please check your connection.');
         } finally {
             setLoading(false);
             isLoadingChats.current = false;
@@ -342,7 +353,7 @@ export const useChat = (user: User | null): UseChatReturn => {
         try {
             console.log('[useChat] Marking chat as read:', chatUid);
             const result = await markChatAsRead(chatUid);
-            
+
             if (!result.success) {
                 console.error('[useChat] Failed to mark as read:', result.error);
                 return;

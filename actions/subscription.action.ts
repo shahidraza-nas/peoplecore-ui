@@ -88,23 +88,22 @@ export async function cancelSubscription() {
 }
 
 /**
- * Get subscription history (if backend endpoint exists)
- * Uncomment when GET /subscription/history is available
+ * Get subscription history
  */
-// export async function getSubscriptionHistory(params?: { offset?: number; limit?: number }) {
-//   try {
-//     const response = await API.GetAll('subscription/history', params);
-//     return {
-//       success: !response.error,
-//       data: response.data,
-//       error: response.error,
-//       message: response.message,
-//     };
-//   } catch (error) {
-//     return {
-//       success: false,
-//       error: error,
-//       message: 'Failed to fetch subscription history',
-//     };
-//   }
-// }
+export async function getSubscriptionHistory(params?: { offset?: number; limit?: number }) {
+  try {
+    const response = await API.GetAll('subscription/history', params);
+    return {
+      success: !response.error,
+      data: response.data,
+      error: response.error,
+      message: response.message,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error,
+      message: 'Failed to fetch subscription history',
+    };
+  }
+}

@@ -154,7 +154,7 @@ export function useSubscription(): UseSubscriptionReturn {
                 throw response.error;
             }
 
-            const processedSubscription = response.data?.subscription as Subscription;
+            const processedSubscription = (response.data as any)?.subscription as Subscription;
             setSubscription(processedSubscription);
             setHasAccess(true);
             calculateDaysRemaining(processedSubscription);
@@ -192,7 +192,7 @@ export function useSubscription(): UseSubscriptionReturn {
                 throw response.error;
             }
 
-            const cancelledSubscription = response.data?.subscription as Subscription;
+            const cancelledSubscription = (response.data as any)?.subscription as Subscription;
             setSubscription(cancelledSubscription);
             setHasAccess(false);
             calculateDaysRemaining(cancelledSubscription);
