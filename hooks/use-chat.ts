@@ -46,6 +46,7 @@ export const useChat = (user: User | null): UseChatReturn => {
     const isLoadingChats = useRef(false);
     const isLoadingMessages = useRef(false);
     const chatsLoaded = useRef(false);
+    const markAsReadInProgressRef = useRef<Set<string>>(new Set());
 
     console.log('[useChat] RENDER - Socket:', !!socket, 'Connected:', socket?.connected, 'ID:', socket?.id);
 
@@ -190,20 +191,35 @@ export const useChat = (user: User | null): UseChatReturn => {
 
         const handleMessagesRead = (data: { chatUid: string; readBy: number }) => {
             console.log('[useChat] Messages marked as read:', data);
+            
+            // Only update messages that were TO the reader (not sent BY the reader)
             if (activeChat && data.chatUid === activeChat.uid) {
                 setMessages((prev) =>
-                    prev.map((msg) => ({ ...msg, isRead: true }))
+                    prev.map((msg) => 
+                        msg.toUserId === data.readBy && msg.fromUserId !== data.readBy
+                            ? { ...msg, isRead: true }
+                            : msg
+                    )
                 );
             }
+            
+            // Update chat list: mark messages as read and reset unread_count
             setChats((prev) =>
-                prev.map((chat) =>
-                    chat.uid === data.chatUid
-                        ? {
+                prev.map((chat) => {
+                    if (chat.uid === data.chatUid) {
+                        return {
                             ...chat,
-                            messages: chat.messages?.map((msg) => ({ ...msg, isRead: true })),
-                        }
-                        : chat
-                )
+                            messages: chat.messages?.map((msg) =>
+                                msg.toUserId === data.readBy && msg.fromUserId !== data.readBy
+                                    ? { ...msg, isRead: true }
+                                    : msg
+                            ),
+                            // Reset unread count if current user marked as read
+                            unread_count: data.readBy === user?.id ? 0 : chat.unread_count,
+                        };
+                    }
+                    return chat;
+                })
             );
         };
 
@@ -212,7 +228,7 @@ export const useChat = (user: User | null): UseChatReturn => {
         return () => {
             offMessagesRead(socket, handleMessagesRead);
         };
-    }, [socket, activeChat]);
+    }, [socket, activeChat, user?.id]);
 
     const loadChats = useCallback(async () => {
         if (!user || isLoadingChats.current) return;
@@ -287,6 +303,56 @@ export const useChat = (user: User | null): UseChatReturn => {
         }
     }, [user?.id]);
 
+    // Mark as read function - defined before sendMessage to avoid hoisting issues
+    const markAsRead = useCallback(async (chatUid: string) => {
+        // Deduplication: prevent multiple concurrent API calls for same chat
+        if (markAsReadInProgressRef.current.has(chatUid)) {
+            console.log('[useChat] markAsRead already in progress for:', chatUid);
+            return;
+        }
+
+        markAsReadInProgressRef.current.add(chatUid);
+
+        try {
+            console.log('[useChat] Marking chat as read:', chatUid);
+            const result = await markChatAsRead(chatUid);
+
+            if (!result.success) {
+                console.error('[useChat] Failed to mark as read:', result.error);
+                return;
+            }
+
+            console.log('[useChat] Successfully marked as read, updating state');
+
+            // Update messages in current chat - only messages TO current user
+            setMessages((prev) =>
+                prev.map((msg) => 
+                    msg.chatId === activeChat?.id && msg.toUserId === user?.id
+                        ? { ...msg, isRead: true }
+                        : msg
+                )
+            );
+
+            // Update chats list to set unread_count to 0 for this chat
+            setChats((prev) =>
+                prev.map((chat) =>
+                    chat.uid === chatUid ? { ...chat, unread_count: 0 } : chat
+                )
+            );
+
+            // Immediately trigger refresh without delay for instant UI update
+            if (typeof window !== 'undefined') {
+                console.log('[useChat] Dispatching chat-read event');
+                window.dispatchEvent(new CustomEvent('chat-read'));
+            }
+        } catch (error) {
+            console.error('[useChat] Exception in markAsRead:', error);
+        } finally {
+            // Always remove from in-progress set
+            markAsReadInProgressRef.current.delete(chatUid);
+        }
+    }, [activeChat, user?.id]);
+
     useEffect(() => {
         if (activeChat) {
             isLoadingMessages.current = false;
@@ -297,7 +363,7 @@ export const useChat = (user: User | null): UseChatReturn => {
         } else {
             setMessages([]);
         }
-    }, [activeChat?.uid]);
+    }, [activeChat?.uid, markAsRead]);
 
     const sendMessage = useCallback(async (toUserUid: string, message: string) => {
         if (!user || !message.trim()) return;
@@ -332,6 +398,12 @@ export const useChat = (user: User | null): UseChatReturn => {
                 console.warn('[useChat] Socket not connected, message sent via API only');
             }
 
+            // Auto-mark as read when sending message (user is actively engaged in chat)
+            if (activeChat) {
+                console.log('[useChat] Auto-marking chat as read after sending message');
+                await markAsRead(activeChat.uid);
+            }
+
             // Refresh unread count after sending to update bell icon
             if (typeof window !== 'undefined') {
                 console.log('[useChat] Dispatching message-sent event to refresh unread count');
@@ -342,46 +414,12 @@ export const useChat = (user: User | null): UseChatReturn => {
         } finally {
             setSending(false);
         }
-    }, [user, socket]);
+    }, [user, socket, activeChat, markAsRead]);
 
     const loadMoreMessages = useCallback(async () => {
         if (!hasMore || loading) return;
         await loadMessages(messageOffset + 50);
     }, [hasMore, loading, messageOffset, loadMessages]);
-
-    const markAsRead = useCallback(async (chatUid: string) => {
-        try {
-            console.log('[useChat] Marking chat as read:', chatUid);
-            const result = await markChatAsRead(chatUid);
-
-            if (!result.success) {
-                console.error('[useChat] Failed to mark as read:', result.error);
-                return;
-            }
-
-            console.log('[useChat] Successfully marked as read, updating state');
-
-            // Update messages in current chat
-            setMessages((prev) =>
-                prev.map((msg) => (msg.chatId === activeChat?.id ? { ...msg, isRead: true } : msg))
-            );
-
-            // Update chats list to set unread_count to 0 for this chat
-            setChats((prev) =>
-                prev.map((chat) =>
-                    chat.uid === chatUid ? { ...chat, unread_count: 0 } : chat
-                )
-            );
-
-            // Immediately trigger refresh without delay for instant UI update
-            if (typeof window !== 'undefined') {
-                console.log('[useChat] Dispatching chat-read event');
-                window.dispatchEvent(new CustomEvent('chat-read'));
-            }
-        } catch (error) {
-            console.error('[useChat] Exception in markAsRead:', error);
-        }
-    }, [activeChat]);
 
     const refreshChats = useCallback(async () => {
         await loadChats();

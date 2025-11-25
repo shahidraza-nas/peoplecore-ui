@@ -1,6 +1,6 @@
 'use client';
 
-import { Chat, User } from '@/lib/types';
+import { Chat, User } from '@/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { formatDistanceToNow } from 'date-fns';
