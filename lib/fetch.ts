@@ -627,6 +627,10 @@ const CancelSubscription = async (immediate: boolean = false) => {
   return Delete('subscription/cancel', params);
 };
 
+const ReactivateSubscription = async () => {
+  return Post('subscription/reactivate', {});
+};
+
 export const API = {
   Create,
   DashboardStats,
@@ -657,4 +661,5 @@ export const API = {
   CreateCheckoutSession,
   ProcessPayment,
   CancelSubscription,
+  ReactivateSubscription,
 };

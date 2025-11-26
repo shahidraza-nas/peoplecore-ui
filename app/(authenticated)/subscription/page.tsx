@@ -50,13 +50,15 @@ export default function SubscriptionPage() {
     isCancelling,
     loading,
     refreshStatus,
-    cancelSubscription
+    cancelSubscription,
+    reactivateSubscription
   } = useSubscription();
 
   const [cancelling, setCancelling] = useState(false);
   const [cancelImmediate, setCancelImmediate] = useState(false);
   const [history, setHistory] = useState<Subscription[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [reactivating, setReactivating] = useState(false);
 
   useEffect(() => {
     const loadHistory = async () => {
@@ -103,6 +105,30 @@ export default function SubscriptionPage() {
     }
     
     setCancelling(false);
+  };
+
+  const handleReactivateSubscription = async () => {
+    setReactivating(true);
+    
+    const success = await reactivateSubscription();
+
+    if (success) {
+      await refreshStatus();
+
+      /**
+       * Reload history to show updated status
+       */
+      if (user) {
+        setLoadingHistory(true);
+        const { data } = await getSubscriptionHistory();
+        if (data && (data as any).subscriptions) {
+          setHistory((data as any).subscriptions);
+        }
+        setLoadingHistory(false);
+      }
+    }
+    
+    setReactivating(false);
   };
 
   const getStatusBadge = (status?: Status) => {
@@ -469,14 +495,33 @@ export default function SubscriptionPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {subscription.status === Status.EXPIRED || subscription.status === Status.CANCELLED || isCancelling ? (
+            {isCancelling ? (
+              <Button
+                onClick={handleReactivateSubscription}
+                className="w-full h-12"
+                size="lg"
+                disabled={reactivating}
+              >
+                {reactivating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Reactivating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Reactivate Subscription
+                  </>
+                )}
+              </Button>
+            ) : subscription.status === Status.EXPIRED || subscription.status === Status.CANCELLED ? (
               <Button
                 onClick={() => router.push('/subscription/checkout')}
                 className="w-full h-12"
                 size="lg"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
-                {isCancelling ? 'Reactivate Subscription' : 'Renew Subscription'}
+                Renew Subscription
               </Button>
             ) : subscription.status === Status.ACTIVE ? (
               <>

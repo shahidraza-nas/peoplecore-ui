@@ -35,6 +35,7 @@ interface UseSubscriptionReturn {
     createCheckout: (data?: { amount?: number; planType?: string }) => Promise<string | null>;
     processPayment: (sessionId: string) => Promise<boolean>;
     cancelSubscription: (immediate?: boolean) => Promise<boolean>;
+    reactivateSubscription: () => Promise<boolean>;
     refreshStatus: () => Promise<void>;
 }
 
@@ -272,6 +273,46 @@ export function useSubscription(): UseSubscriptionReturn {
     }, [getStatus]);
 
     /**
+     * Reactivate cancelled subscription
+     */
+    const reactivateSubscription = useCallback(async (): Promise<boolean> => {
+        setLoading(true);
+        setError(null);
+        const toastId = toast.loading('Reactivating subscription...');
+
+        try {
+            const response = await API.ReactivateSubscription();
+
+            if (response.error) {
+                const errorMsg = typeof response.error === 'string'
+                    ? response.error
+                    : (response.error as any)?.message || response.message || 'Failed to reactivate subscription';
+                throw new Error(errorMsg);
+            }
+
+            console.log('[reactivateSubscription] Reactivate API response:', response.data);
+
+            /**
+             * Fetch fresh status from backend to ensure UI is in sync
+             */
+            await getStatus();
+
+            toast.success('Subscription reactivated successfully', { id: toastId });
+            return true;
+
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to reactivate subscription';
+            console.error('Reactivation error:', errorMessage, err);
+
+            setError(err as ApiError);
+            toast.error(errorMessage, { id: toastId });
+            return false;
+        } finally {
+            setLoading(false);
+        }
+    }, [getStatus]);
+
+    /**
      * Refresh subscription status (alias for getStatus)
      */
     const refreshStatus = useCallback(async () => {
@@ -297,6 +338,7 @@ export function useSubscription(): UseSubscriptionReturn {
         createCheckout,
         processPayment,
         cancelSubscription,
+        reactivateSubscription,
         refreshStatus,
     };
 }
