@@ -28,6 +28,7 @@ interface UseSubscriptionReturn {
     hasAccess: boolean;
     daysRemaining: number | null;
     isInGracePeriod: boolean;
+    isCancelling: boolean;
     loading: boolean;
     error: ApiError | null;
     getStatus: () => Promise<void>;
@@ -38,11 +39,21 @@ interface UseSubscriptionReturn {
 }
 
 export function useSubscription(): UseSubscriptionReturn {
+    /**
+     * Check for cached subscription status to prevent flash on navigation
+     */
+    const getCachedAccess = () => {
+        if (typeof window === 'undefined') return false;
+        const cached = sessionStorage.getItem('subscription_access');
+        return cached === 'true';
+    };
+
     const [subscription, setSubscription] = useState<Subscription | null>(null);
-    const [hasAccess, setHasAccess] = useState(false);
+    const [hasAccess, setHasAccess] = useState(getCachedAccess());
     const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
     const [isInGracePeriod, setIsInGracePeriod] = useState(false);
-    const [loading, setLoading] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [loading, setLoading] = useState(true); 
     const [error, setError] = useState<ApiError | null>(null);
 
     /**
@@ -92,14 +103,35 @@ export function useSubscription(): UseSubscriptionReturn {
             }
 
             const data = response.data as SubscriptionStatusResponse;
+            console.log('[getStatus] Backend response:', {
+                subscription: data.subscription,
+                access: data.access,
+                isCancelling: data.access.isCancelling,
+                cancel_at_period_end: data.subscription?.cancel_at_period_end
+            });
+
             setSubscription(data.subscription);
             setHasAccess(data.access.hasAccess);
+            setIsCancelling(data.access.isCancelling);
             calculateDaysRemaining(data.subscription);
+
+            console.log('[getStatus] State updated - isCancelling:', data.access.isCancelling);
+
+            // Cache access status for smoother navigation
+            if (typeof window !== 'undefined') {
+                sessionStorage.setItem('subscription_access', data.access.hasAccess.toString());
+            }
         } catch (err) {
             const apiError = err as ApiError;
             setError(apiError);
             setSubscription(null);
             setHasAccess(false);
+            setIsCancelling(false);
+
+            // Clear cache on error
+            if (typeof window !== 'undefined') {
+                sessionStorage.removeItem('subscription_access');
+            }
             console.error('Failed to fetch subscription status:', apiError);
         } finally {
             setLoading(false);
@@ -113,40 +145,28 @@ export function useSubscription(): UseSubscriptionReturn {
         setLoading(true);
         setError(null);
         const toastId = toast.loading('Creating checkout session...');
-        
         try {
             const response = await API.CreateCheckoutSession(data || {});
-            
-            // Handle API-level errors (returned from backend)
             if (response.error) {
-                const errorMsg = typeof response.error === 'string' 
-                    ? response.error 
+                const errorMsg = typeof response.error === 'string'
+                    ? response.error
                     : (response.error as any)?.message || response.message || 'Failed to create checkout session';
-                
+
                 throw new Error(errorMsg);
             }
-
-            // Validate response structure
             if (!response.data) {
                 throw new Error('No response data received from server');
             }
-            
             const checkoutData = response.data as CheckoutSessionResponse;
-            
             if (!checkoutData.sessionUrl) {
                 throw new Error('No session URL returned from server');
             }
-            
             toast.success('Redirecting to payment...', { id: toastId });
-            
-            // Redirect to Stripe Checkout
             window.location.href = checkoutData.sessionUrl;
             return checkoutData.sessionId;
-            
         } catch (err) {
-            // Extract error message from various error formats
             let errorMessage = 'Failed to create checkout session';
-            
+
             if (err instanceof Error) {
                 errorMessage = err.message;
             } else if (typeof err === 'string') {
@@ -155,16 +175,12 @@ export function useSubscription(): UseSubscriptionReturn {
                 const errObj = err as any;
                 errorMessage = errObj.message || errObj.error?.message || errorMessage;
             }
-            
-            // Log error details for debugging
             console.error('Checkout error:', errorMessage, err);
-            
             setError(err as ApiError);
             toast.error(errorMessage, {
                 id: toastId,
                 duration: 5000,
             });
-            
             return null;
         } finally {
             setLoading(false);
@@ -201,11 +217,11 @@ export function useSubscription(): UseSubscriptionReturn {
 
             toast.success('Subscription activated successfully!', { id: toastId });
             return true;
-            
+
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to process payment';
             console.error('Payment processing error:', errorMessage, err);
-            
+
             setError(err as ApiError);
             toast.error(errorMessage, { id: toastId });
             return false;
@@ -232,25 +248,28 @@ export function useSubscription(): UseSubscriptionReturn {
                 throw new Error(errorMsg);
             }
 
-            const cancelledSubscription = (response.data as any)?.subscription as Subscription;
-            setSubscription(cancelledSubscription);
-            setHasAccess(false);
-            calculateDaysRemaining(cancelledSubscription);
+            console.log('[cancelSubscription] Cancel API response:', response.data);
+
+            /**
+             * Fetch fresh status from backend to ensure UI is in sync
+             * This is more reliable than manually setting state from cancel response
+             */
+            await getStatus();
 
             toast.success('Subscription cancelled successfully', { id: toastId });
             return true;
-            
+
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to cancel subscription';
             console.error('Cancellation error:', errorMessage, err);
-            
+
             setError(err as ApiError);
             toast.error(errorMessage, { id: toastId });
             return false;
         } finally {
             setLoading(false);
         }
-    }, [calculateDaysRemaining]);
+    }, [getStatus]);
 
     /**
      * Refresh subscription status (alias for getStatus)
@@ -271,6 +290,7 @@ export function useSubscription(): UseSubscriptionReturn {
         hasAccess,
         daysRemaining,
         isInGracePeriod,
+        isCancelling,
         loading,
         error,
         getStatus,

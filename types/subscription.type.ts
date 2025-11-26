@@ -8,6 +8,7 @@ export interface Subscription {
     plan_type: PlanType;
     current_period_start: string;
     current_period_end: string;
+    cancel_at_period_end?: boolean;
     amount: number;
     currency: string;
     cancelled_at?: string;

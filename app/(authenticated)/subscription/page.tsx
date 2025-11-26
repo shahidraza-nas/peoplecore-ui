@@ -8,7 +8,6 @@ import { getSubscriptionHistory } from "@/actions/subscription.action";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import {
   Loader2,
   CalendarDays,
@@ -38,15 +37,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Progress } from "@/components/ui/progress";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
 export default function SubscriptionPage() {
@@ -57,13 +47,13 @@ export default function SubscriptionPage() {
     hasAccess,
     daysRemaining,
     isInGracePeriod,
+    isCancelling,
     loading,
     refreshStatus,
     cancelSubscription
   } = useSubscription();
 
   const [cancelling, setCancelling] = useState(false);
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelImmediate, setCancelImmediate] = useState(false);
   const [history, setHistory] = useState<Subscription[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -74,7 +64,6 @@ export default function SubscriptionPage() {
       setLoadingHistory(true);
       const result = await getSubscriptionHistory();
       if (result.success && result.data) {
-        // API returns data in subscriptions array
         const data = result.data as any;
         setHistory(data.subscriptions || []);
       }
@@ -84,19 +73,40 @@ export default function SubscriptionPage() {
   }, [user]);
 
   const handleCancelSubscription = async () => {
-    setShowCancelDialog(false);
     setCancelling(true);
+    
     const success = await cancelSubscription(cancelImmediate);
-    setCancelling(false);
 
     if (success) {
+      /**
+       * For immediate cancellation, wait 2 seconds for webhook to process
+       * For period-end cancellation, refresh immediately
+       */
+      if (cancelImmediate) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
       await refreshStatus();
       setCancelImmediate(false);
+
+      /**
+       * Reload history to show updated cancellation status
+       */
+      if (user) {
+        setLoadingHistory(true);
+        const { data } = await getSubscriptionHistory();
+        if (data && (data as any).subscriptions) {
+          setHistory((data as any).subscriptions);
+        }
+        setLoadingHistory(false);
+      }
     }
+    
+    setCancelling(false);
   };
 
   const getStatusBadge = (status?: Status) => {
-    const badges = {
+    const badges: Record<Status, React.ReactElement> = {
       [Status.ACTIVE]: <Badge className="bg-green-500">Active</Badge>,
       [Status.INACTIVE]: <Badge variant="secondary">Inactive</Badge>,
       [Status.CANCELLED]: <Badge variant="destructive">Cancelled</Badge>,
@@ -108,21 +118,10 @@ export default function SubscriptionPage() {
   const getDaysRemainingProgress = () => {
     if (!subscription || !daysRemaining) return 0;
 
-    const totalDays = 30; // Assuming monthly subscription
+    const totalDays = 30;
     const progress = ((totalDays - Math.abs(daysRemaining)) / totalDays) * 100;
     return Math.min(Math.max(progress, 0), 100);
   };
-
-  if (loading && !subscription) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-10 h-10 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading subscription...</p>
-        </div>
-      </div>
-    );
-  }
 
   // Admin view
   if (user?.role === 'Admin') {
@@ -182,7 +181,7 @@ export default function SubscriptionPage() {
           <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
           <div className="absolute top-20 right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute bottom-10 left-10 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
-          
+
           <div className="relative z-10">
             <Badge className="bg-white/20 backdrop-blur-sm text-white border-0 mb-4">
               <Sparkles className="w-3 h-3 mr-1" />
@@ -194,9 +193,9 @@ export default function SubscriptionPage() {
             <p className="text-lg text-white/90 max-w-2xl mb-8">
               Subscribe now to access real-time messaging, unlimited conversations, and exclusive features designed for seamless communication.
             </p>
-            
-            <Button 
-              onClick={() => router.push('/subscription/checkout')} 
+
+            <Button
+              onClick={() => router.push('/subscription/checkout')}
               size="lg"
               className="bg-white text-cyan-600 hover:bg-white/90 font-semibold h-12 px-8"
             >
@@ -283,15 +282,15 @@ export default function SubscriptionPage() {
       {/* Premium Status Hero */}
       <div className={cn(
         "relative overflow-hidden rounded-3xl p-8 md:p-10 text-white transition-all duration-300",
-        subscription.status === Status.ACTIVE 
+        subscription.status === Status.ACTIVE
           ? "bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600"
           : subscription.status === Status.EXPIRED
-          ? "bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-600"
-          : "bg-gradient-to-br from-zinc-500 via-gray-500 to-slate-600"
+            ? "bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-600"
+            : "bg-gradient-to-br from-zinc-500 via-gray-500 to-slate-600"
       )}>
         <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
         <div className="absolute top-10 right-10 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
-        
+
         <div className="relative z-10">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -309,8 +308,8 @@ export default function SubscriptionPage() {
                   {subscription.status === Status.ACTIVE && daysRemaining !== null && daysRemaining > 0
                     ? `${daysRemaining} days remaining in your billing cycle`
                     : subscription.status === Status.EXPIRED
-                    ? 'Your subscription has expired'
-                    : 'Subscription status updated'}
+                      ? 'Your subscription has expired'
+                      : 'Subscription status updated'}
                 </p>
               </div>
             </div>
@@ -334,7 +333,7 @@ export default function SubscriptionPage() {
                 <span className="text-white/70">{Math.round(getDaysRemainingProgress())}%</span>
               </div>
               <div className="h-3 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
-                <div 
+                <div
                   className="h-full bg-white rounded-full transition-all duration-500"
                   style={{ width: `${getDaysRemainingProgress()}%` }}
                 />
@@ -432,7 +431,7 @@ export default function SubscriptionPage() {
               )}
             </CardTitle>
             <CardDescription>
-              {hasAccess 
+              {hasAccess
                 ? 'You have full access to all chat features'
                 : 'Renew subscription to restore access'
               }
@@ -470,14 +469,14 @@ export default function SubscriptionPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {subscription.status === Status.EXPIRED || subscription.status === Status.CANCELLED ? (
-              <Button 
-                onClick={() => router.push('/subscription/checkout')} 
+            {subscription.status === Status.EXPIRED || subscription.status === Status.CANCELLED || isCancelling ? (
+              <Button
+                onClick={() => router.push('/subscription/checkout')}
                 className="w-full h-12"
                 size="lg"
               >
                 <Sparkles className="mr-2 h-4 w-4" />
-                Renew Subscription
+                {isCancelling ? 'Reactivate Subscription' : 'Renew Subscription'}
               </Button>
             ) : subscription.status === Status.ACTIVE ? (
               <>
@@ -504,7 +503,7 @@ export default function SubscriptionPage() {
                         Choose when you want your subscription to end.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    
+
                     <div className="space-y-4 py-4">
                       <button
                         onClick={() => setCancelImmediate(false)}
@@ -525,7 +524,7 @@ export default function SubscriptionPage() {
                           <div className="flex-1">
                             <h4 className="font-semibold mb-1">Cancel at Period End</h4>
                             <p className="text-sm text-muted-foreground">
-                              Keep access until {subscription?.current_period_end 
+                              Keep access until {subscription?.current_period_end
                                 ? format(new Date(subscription.current_period_end), 'MMM dd, yyyy')
                                 : 'end of period'
                               }. You won't be charged again.
@@ -564,10 +563,10 @@ export default function SubscriptionPage() {
                       <AlertDialogCancel onClick={() => setCancelImmediate(false)}>
                         Keep Subscription
                       </AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleCancelSubscription} 
+                      <AlertDialogAction
+                        onClick={handleCancelSubscription}
                         className={cn(
-                          cancelImmediate 
+                          cancelImmediate
                             ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             : "bg-orange-500 text-white hover:bg-orange-600"
                         )}
@@ -615,7 +614,7 @@ export default function SubscriptionPage() {
           ) : (
             <div className="space-y-3">
               {history.map((sub, index) => (
-                <div 
+                <div
                   key={sub.uid}
                   className={cn(
                     "p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md",
@@ -638,7 +637,7 @@ export default function SubscriptionPage() {
                     </div>
                     {getStatusBadge(sub.status)}
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-4 pt-3 border-t">
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Period</p>

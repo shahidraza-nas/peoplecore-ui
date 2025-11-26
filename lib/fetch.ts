@@ -45,10 +45,9 @@ export const getHttpOption = async (options: HttpOptions): Promise<Headers> => {
   }
   if (!isMultipart) headers.set("Content-Type", "application/json");
   if (!!secured) {
-    // Use NextAuth session for both server-side and client-side
     const session = typeof window === "undefined"
-      ? await auth()  // Server-side: use auth()
-      : await getSession();  // Client-side: use getSession()
+      ? await auth()
+      : await getSession();
 
     if (session?.user) {
       headers.set("Authorization", `Bearer ${(session.user as any).accessToken}`);
