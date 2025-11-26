@@ -38,6 +38,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import SubscriptionLoadingSkeleton from "./loading";
 
 export default function SubscriptionPage() {
   const router = useRouter();
@@ -149,6 +150,11 @@ export default function SubscriptionPage() {
     return Math.min(Math.max(progress, 0), 100);
   };
 
+  // Show loading skeleton while initial data is loading
+  if (loading && !subscription && user?.role !== 'Admin') {
+    return <SubscriptionLoadingSkeleton />;
+  }
+
   // Admin view
   if (user?.role === 'Admin') {
     return (
@@ -196,6 +202,11 @@ export default function SubscriptionPage() {
         </div>
       </div>
     );
+  }
+
+  // Show loading skeleton if still loading without subscription data
+  if (loading && !subscription) {
+    return <SubscriptionLoadingSkeleton />;
   }
 
   // No subscription
