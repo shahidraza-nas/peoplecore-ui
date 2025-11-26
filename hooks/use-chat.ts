@@ -11,6 +11,7 @@ import {
 } from '@/actions/chat.action';
 import type { Chat, ChatMessage, User } from '@/types';
 import { toast } from 'sonner';
+import { isSubscriptionError, showSubscriptionError } from '@/lib/utils';
 
 export interface UseChatReturn {
     chats: Chat[];
@@ -238,14 +239,8 @@ export const useChat = (user: User | null): UseChatReturn => {
         try {
             const response = await getMyChats({ offset: 0, limit: 50 });
             if (!response.success || response.error) {
-                const error = response.error;
-                const isSubscriptionError = 
-                    error === 'SUBSCRIPTION_REQUIRED' ||
-                    (typeof error === 'string' && error.toLowerCase().includes('subscription')) ||
-                    (typeof error === 'object' && error?.error === 'SUBSCRIPTION_REQUIRED') ||
-                    (typeof error === 'object' && error?.message?.toLowerCase().includes('subscription'));
-                if (isSubscriptionError) {
-                    toast.error('Active subscription required to access chat features');
+                if (isSubscriptionError(response.error)) {
+                    showSubscriptionError();
                 } else {
                     toast.error('Unable to load your conversations. Please try again.');
                 }
@@ -276,7 +271,11 @@ export const useChat = (user: User | null): UseChatReturn => {
         try {
             const response = await getChatMessages(activeChat.uid, { offset, limit: 50 });
             if (!response.success || response.error) {
-                toast.error('Failed to load messages');
+                if (isSubscriptionError(response.error)) {
+                    showSubscriptionError();
+                } else {
+                    toast.error('Failed to load messages');
+                }
                 return;
             }
 
@@ -319,6 +318,12 @@ export const useChat = (user: User | null): UseChatReturn => {
 
             if (!result.success) {
                 console.error('[useChat] Failed to mark as read:', result.error);
+                
+                if (isSubscriptionError(result.error)) {
+                    showSubscriptionError();
+                } else {
+                    toast.error('Failed to mark messages as read');
+                }
                 return;
             }
 
@@ -372,7 +377,11 @@ export const useChat = (user: User | null): UseChatReturn => {
         try {
             const response = await apiSendMessage({ toUserUid, message: message.trim() });
             if (!response.success || response.error) {
-                toast.error('Failed to send message');
+                if (isSubscriptionError(response.error)) {
+                    showSubscriptionError('Active subscription required to send messages');
+                } else {
+                    toast.error('Failed to send message');
+                }
                 return;
             }
             const sentMessage = response.data?.message;
@@ -445,11 +454,16 @@ export const useChat = (user: User | null): UseChatReturn => {
             });
 
             if (!response.success || response.error) {
-                const errorMsg = typeof response.error === 'string'
-                    ? response.error
-                    : response.error?.message || 'Failed to create chat';
-                console.error('useChat: Chat creation failed:', errorMsg);
-                toast.error(errorMsg);
+                console.error('useChat: Chat creation failed:', response.error);
+                
+                if (isSubscriptionError(response.error)) {
+                    showSubscriptionError('Active subscription required to create chats');
+                } else {
+                    const errorMsg = typeof response.error === 'string'
+                        ? response.error
+                        : response.error?.message || 'Failed to create chat';
+                    toast.error(errorMsg);
+                }
                 return null;
             }
 

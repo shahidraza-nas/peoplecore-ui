@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -93,4 +94,30 @@ export const getSessionProps = (user: any) => {
     provider: user.provider,
     unread_messages_count: user.unread_messages_count || 0,
   };
+}
+
+/**
+ * Check if an error is related to subscription requirements
+ */
+export function isSubscriptionError(error: any): boolean {
+  return (
+    error === 'SUBSCRIPTION_REQUIRED' ||
+    (typeof error === 'string' && error.toLowerCase().includes('subscription')) ||
+    (typeof error === 'object' && error?.error === 'SUBSCRIPTION_REQUIRED') ||
+    (typeof error === 'object' && error?.message?.toLowerCase().includes('subscription'))
+  );
+}
+
+/**
+ * Show subscription error toast and redirect to subscription page
+ */
+export function showSubscriptionError(message: string = 'Active subscription required to access chat features') {
+  toast.error(message);
+  
+  // Redirect to subscription page after a short delay
+  setTimeout(() => {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/subscription/checkout';
+    }
+  }, 1500);
 }

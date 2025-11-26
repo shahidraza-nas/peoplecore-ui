@@ -63,6 +63,8 @@ export default function SubscriptionPage() {
   } = useSubscription();
 
   const [cancelling, setCancelling] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [cancelImmediate, setCancelImmediate] = useState(false);
   const [history, setHistory] = useState<Subscription[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
@@ -82,12 +84,14 @@ export default function SubscriptionPage() {
   }, [user]);
 
   const handleCancelSubscription = async () => {
+    setShowCancelDialog(false);
     setCancelling(true);
-    const success = await cancelSubscription();
+    const success = await cancelSubscription(cancelImmediate);
     setCancelling(false);
 
     if (success) {
       await refreshStatus();
+      setCancelImmediate(false);
     }
   };
 
@@ -495,19 +499,80 @@ export default function SubscriptionPage() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
+                      <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will cancel your subscription immediately. You will lose access to chat features.
-                        This action cannot be undone.
+                        Choose when you want your subscription to end.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
+                    
+                    <div className="space-y-4 py-4">
+                      <button
+                        onClick={() => setCancelImmediate(false)}
+                        className={cn(
+                          "w-full p-4 rounded-lg border-2 text-left transition-all",
+                          !cancelImmediate
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={cn(
+                            "w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center",
+                            !cancelImmediate ? "border-primary" : "border-muted-foreground"
+                          )}>
+                            {!cancelImmediate && <div className="w-3 h-3 rounded-full bg-primary" />}
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold mb-1">Cancel at Period End</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Keep access until {subscription?.current_period_end 
+                                ? format(new Date(subscription.current_period_end), 'MMM dd, yyyy')
+                                : 'end of period'
+                              }. You won't be charged again.
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => setCancelImmediate(true)}
+                        className={cn(
+                          "w-full p-4 rounded-lg border-2 text-left transition-all",
+                          cancelImmediate
+                            ? "border-destructive bg-destructive/5"
+                            : "border-border hover:border-destructive/50"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={cn(
+                            "w-5 h-5 rounded-full border-2 mt-0.5 flex items-center justify-center",
+                            cancelImmediate ? "border-destructive" : "border-muted-foreground"
+                          )}>
+                            {cancelImmediate && <div className="w-3 h-3 rounded-full bg-destructive" />}
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-semibold mb-1">Cancel Immediately</h4>
+                            <p className="text-sm text-muted-foreground">
+                              Lose access to chat features right away. No refund will be issued.
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+                      <AlertDialogCancel onClick={() => setCancelImmediate(false)}>
+                        Keep Subscription
+                      </AlertDialogCancel>
                       <AlertDialogAction 
                         onClick={handleCancelSubscription} 
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        className={cn(
+                          cancelImmediate 
+                            ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            : "bg-orange-500 text-white hover:bg-orange-600"
+                        )}
                       >
-                        Yes, Cancel
+                        {cancelImmediate ? 'Cancel Now' : 'Cancel at Period End'}
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>

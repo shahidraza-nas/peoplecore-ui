@@ -4,8 +4,18 @@ import { API } from '@/lib/fetch';
 import { toast } from 'sonner';
 
 interface SubscriptionStatusResponse {
-    hasAccess: boolean;
     subscription: Subscription | null;
+    access: {
+        hasAccess: boolean;
+        isActive: boolean;
+        isCancelling: boolean;
+    };
+    billing: {
+        status: string;
+        currentPeriodEnd: string;
+        cancelAtPeriodEnd: boolean;
+        cancelledAt: string | null;
+    } | null;
 }
 
 interface CheckoutSessionResponse {
@@ -23,7 +33,7 @@ interface UseSubscriptionReturn {
     getStatus: () => Promise<void>;
     createCheckout: (data?: { amount?: number; planType?: string }) => Promise<string | null>;
     processPayment: (sessionId: string) => Promise<boolean>;
-    cancelSubscription: () => Promise<boolean>;
+    cancelSubscription: (immediate?: boolean) => Promise<boolean>;
     refreshStatus: () => Promise<void>;
 }
 
@@ -83,7 +93,7 @@ export function useSubscription(): UseSubscriptionReturn {
 
             const data = response.data as SubscriptionStatusResponse;
             setSubscription(data.subscription);
-            setHasAccess(data.hasAccess);
+            setHasAccess(data.access.hasAccess);
             calculateDaysRemaining(data.subscription);
         } catch (err) {
             const apiError = err as ApiError;
@@ -103,45 +113,58 @@ export function useSubscription(): UseSubscriptionReturn {
         setLoading(true);
         setError(null);
         const toastId = toast.loading('Creating checkout session...');
+        
         try {
             const response = await API.CreateCheckoutSession(data || {});
+            
+            // Handle API-level errors (returned from backend)
             if (response.error) {
-                throw response.error;
-            }
-            const checkoutData = response.data as CheckoutSessionResponse;
-            toast.success('Redirecting to payment...', {
-                id: toastId,
-            });
-            if (checkoutData.sessionUrl) {
-                window.location.href = checkoutData.sessionUrl;
-                return checkoutData.sessionId;
+                const errorMsg = typeof response.error === 'string' 
+                    ? response.error 
+                    : (response.error as any)?.message || response.message || 'Failed to create checkout session';
+                
+                throw new Error(errorMsg);
             }
 
-            throw new Error('No session URL returned');
-        } catch (err: any) {
-            const apiError = err as ApiError;
-            setError(apiError);
-            let errorMessage = 'Failed to create checkout session';
-            if (typeof err === 'string') {
-                errorMessage = err;
-            } else if (err?.message) {
-                errorMessage = err.message;
-            } else if (err?.error) {
-                if (typeof err.error === 'string') {
-                    errorMessage = err.error;
-                } else if (err.error?.message) {
-                    errorMessage = err.error.message;
-                }
+            // Validate response structure
+            if (!response.data) {
+                throw new Error('No response data received from server');
             }
-            console.error('Checkout session error details:', {
-                error: err,
-                apiError,
-                message: errorMessage
-            });
+            
+            const checkoutData = response.data as CheckoutSessionResponse;
+            
+            if (!checkoutData.sessionUrl) {
+                throw new Error('No session URL returned from server');
+            }
+            
+            toast.success('Redirecting to payment...', { id: toastId });
+            
+            // Redirect to Stripe Checkout
+            window.location.href = checkoutData.sessionUrl;
+            return checkoutData.sessionId;
+            
+        } catch (err) {
+            // Extract error message from various error formats
+            let errorMessage = 'Failed to create checkout session';
+            
+            if (err instanceof Error) {
+                errorMessage = err.message;
+            } else if (typeof err === 'string') {
+                errorMessage = err;
+            } else if (err && typeof err === 'object') {
+                const errObj = err as any;
+                errorMessage = errObj.message || errObj.error?.message || errorMessage;
+            }
+            
+            // Log error details for debugging
+            console.error('Checkout error:', errorMessage, err);
+            
+            setError(err as ApiError);
             toast.error(errorMessage, {
                 id: toastId,
                 duration: 5000,
             });
+            
             return null;
         } finally {
             setLoading(false);
@@ -149,8 +172,8 @@ export function useSubscription(): UseSubscriptionReturn {
     }, []);
 
     /**
-   * Process payment after Stripe redirect
-   */
+     * Process payment after Stripe redirect
+     */
     const processPayment = useCallback(async (sessionId: string): Promise<boolean> => {
         if (!sessionId) {
             toast.error('Invalid session ID');
@@ -159,14 +182,16 @@ export function useSubscription(): UseSubscriptionReturn {
 
         setLoading(true);
         setError(null);
-
         const toastId = toast.loading('Verifying payment...');
 
         try {
             const response = await API.ProcessPayment(sessionId);
 
             if (response.error) {
-                throw response.error;
+                const errorMsg = typeof response.error === 'string'
+                    ? response.error
+                    : (response.error as any)?.message || response.message || 'Failed to process payment';
+                throw new Error(errorMsg);
             }
 
             const processedSubscription = (response.data as any)?.subscription as Subscription;
@@ -174,17 +199,15 @@ export function useSubscription(): UseSubscriptionReturn {
             setHasAccess(true);
             calculateDaysRemaining(processedSubscription);
 
-            toast.success('Subscription activated successfully!', {
-                id: toastId
-            });
-
+            toast.success('Subscription activated successfully!', { id: toastId });
             return true;
+            
         } catch (err) {
-            const apiError = err as ApiError;
-            setError(apiError);
-            toast.error(apiError.message || 'Failed to process payment', {
-                id: toastId
-            });
+            const errorMessage = err instanceof Error ? err.message : 'Failed to process payment';
+            console.error('Payment processing error:', errorMessage, err);
+            
+            setError(err as ApiError);
+            toast.error(errorMessage, { id: toastId });
             return false;
         } finally {
             setLoading(false);
@@ -192,19 +215,21 @@ export function useSubscription(): UseSubscriptionReturn {
     }, [calculateDaysRemaining]);
 
     /**
-   * Cancel subscription
-   */
-    const cancelSubscription = useCallback(async (): Promise<boolean> => {
+     * Cancel subscription
+     */
+    const cancelSubscription = useCallback(async (immediate: boolean = false): Promise<boolean> => {
         setLoading(true);
         setError(null);
-
         const toastId = toast.loading('Cancelling subscription...');
 
         try {
-            const response = await API.CancelSubscription();
+            const response = await API.CancelSubscription(immediate);
 
             if (response.error) {
-                throw response.error;
+                const errorMsg = typeof response.error === 'string'
+                    ? response.error
+                    : (response.error as any)?.message || response.message || 'Failed to cancel subscription';
+                throw new Error(errorMsg);
             }
 
             const cancelledSubscription = (response.data as any)?.subscription as Subscription;
@@ -212,25 +237,24 @@ export function useSubscription(): UseSubscriptionReturn {
             setHasAccess(false);
             calculateDaysRemaining(cancelledSubscription);
 
-            toast.success('Subscription cancelled successfully', {
-                id: toastId
-            });
-
+            toast.success('Subscription cancelled successfully', { id: toastId });
             return true;
+            
         } catch (err) {
-            const apiError = err as ApiError;
-            setError(apiError);
-            toast.error(apiError.message || 'Failed to cancel subscription', {
-                id: toastId
-            });
+            const errorMessage = err instanceof Error ? err.message : 'Failed to cancel subscription';
+            console.error('Cancellation error:', errorMessage, err);
+            
+            setError(err as ApiError);
+            toast.error(errorMessage, { id: toastId });
             return false;
         } finally {
             setLoading(false);
         }
     }, [calculateDaysRemaining]);
+
     /**
-   * Refresh subscription status (alias for getStatus)
-   */
+     * Refresh subscription status (alias for getStatus)
+     */
     const refreshStatus = useCallback(async () => {
         await getStatus();
     }, [getStatus]);

@@ -15,26 +15,28 @@ const plans = [
     name: "Monthly Plan",
     price: 10,
     period: "month",
-    description: "Access to chat features for 1 month",
+    description: "Automatic monthly renewal",
     features: [
       "Unlimited messaging",
       "Real-time notifications",
       "File sharing",
-      "3-day grace period after expiration",
+      "Cancel anytime",
+      "Billed monthly",
     ],
   },
   {
     id: PlanType.CHAT_YEARLY,
     name: "Yearly Plan",
-    price: 100,
+    price: 80,
     period: "year",
-    description: "Access to chat features for 1 year",
-    savings: "Save $20",
+    description: "Automatic yearly renewal",
+    savings: "Save $40/year",
     features: [
       "All Monthly Plan features",
       "Priority support",
       "Early access to new features",
       "Best value for long-term use",
+      "Billed annually",
     ],
   },
 ];
@@ -52,12 +54,10 @@ export default function CheckoutPage() {
     }
 
     console.log("Creating checkout session with:", {
-      amount: plan.price,
       planType: selectedPlan,
     });
 
     const sessionId = await createCheckout({
-      amount: plan.price,
       planType: selectedPlan,
     });
     
@@ -72,7 +72,7 @@ export default function CheckoutPage() {
         <div className="text-center space-y-2">
           <h1 className="text-4xl font-bold tracking-tight">Choose Your Plan</h1>
           <p className="text-zinc-600 dark:text-zinc-400">
-            Select a subscription plan to unlock chat access
+            Select a recurring subscription plan • Cancel anytime
           </p>
         </div>
 

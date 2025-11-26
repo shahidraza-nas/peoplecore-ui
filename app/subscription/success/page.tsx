@@ -63,7 +63,7 @@ export default function SubscriptionSuccessPage() {
 
   useEffect(() => {
     if (status === 'success' && countdown === 0) {
-      router.push('/dashboard');
+      router.push('/chat');
     }
   }, [countdown, status, router]);
 
@@ -123,15 +123,15 @@ export default function SubscriptionSuccessPage() {
           <div className="mx-auto w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4">
             <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
           </div>
-          <CardTitle className="text-green-600 dark:text-green-400">Payment Successful!</CardTitle>
+          <CardTitle className="text-green-600 dark:text-green-400">Subscription Active!</CardTitle>
           <CardDescription>
-            Your subscription has been activated successfully.
+            Your recurring subscription is now active. You'll be automatically billed at the end of each period.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-4 text-center">
             <p className="text-sm text-zinc-600 dark:text-zinc-400">
-              Redirecting to dashboard in{' '}
+              Redirecting to chat in{' '}
               <span className="font-bold text-lg text-zinc-900 dark:text-zinc-100">{countdown}</span>{' '}
               seconds...
             </p>

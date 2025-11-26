@@ -26,18 +26,33 @@ export default function PricingPage() {
       action: "free"
     },
     {
-      name: "Pro",
+      name: "Pro Monthly",
       price: "$10",
-      description: "Unlock chat features for your team",
+      description: "Unlock chat features with monthly billing",
       features: [
         "All Free features",
         "Unlimited real-time messaging",
         "File sharing in chat",
         "Typing indicators & read receipts",
         "Priority support",
-        "50GB storage"
+        "Cancel anytime"
       ],
       popular: true,
+      action: "pro"
+    },
+    {
+      name: "Pro Yearly",
+      price: "$80",
+      description: "Best value with yearly billing (Save $40)",
+      features: [
+        "All Pro Monthly features",
+        "2 months free",
+        "Priority support",
+        "Early access to features",
+        "Best long-term value",
+        "Cancel anytime"
+      ],
+      popular: false,
       action: "pro"
     },
     {
