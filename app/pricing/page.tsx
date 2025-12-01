@@ -6,9 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function PricingPage() {
   const router = useRouter();
+  const { user } = useAuth();
 
   const plans = [
     {
@@ -17,41 +19,79 @@ export default function PricingPage() {
       description: "Perfect for small teams getting started",
       features: [
         "Up to 10 team members",
-        "Basic chat functionality",
-        "Employee directory",
+        "Basic employee directory",
         "Email support",
         "1GB storage"
-      ]
+      ],
+      action: "free"
     },
     {
-      name: "Pro",
-      price: "$29",
-      description: "For growing teams that need more",
+      name: "Pro Monthly",
+      price: "$10",
+      description: "Unlock chat features with monthly billing",
       features: [
-        "Up to 100 team members",
-        "Advanced chat with file sharing",
-        "Employee management & analytics",
+        "All Free features",
+        "Unlimited real-time messaging",
+        "File sharing in chat",
+        "Typing indicators & read receipts",
         "Priority support",
-        "50GB storage",
-        "Custom integrations"
+        "Cancel anytime"
       ],
-      popular: true
+      popular: true,
+      action: "pro"
+    },
+    {
+      name: "Pro Yearly",
+      price: "$80",
+      description: "Best value with yearly billing (Save $40)",
+      features: [
+        "All Pro Monthly features",
+        "2 months free",
+        "Priority support",
+        "Early access to features",
+        "Best long-term value",
+        "Cancel anytime"
+      ],
+      popular: false,
+      action: "pro"
     },
     {
       name: "Enterprise",
       price: "Custom",
       description: "For large organizations with specific needs",
       features: [
-        "Unlimited team members",
         "All Pro features",
+        "Unlimited team members",
         "Dedicated account manager",
         "24/7 phone support",
         "Unlimited storage",
         "Custom branding",
         "SLA guarantee"
-      ]
+      ],
+      action: "enterprise"
     }
   ];
+
+  const handlePlanSelect = (action: string) => {
+    if (action === "free") {
+      // Free plan - redirect to register if not logged in
+      if (user) {
+        router.push("/dashboard");
+      } else {
+        router.push("/register");
+      }
+    } else if (action === "pro") {
+      // Pro plan - redirect to checkout if logged in, otherwise register
+      if (user) {
+        router.push("/subscription/checkout");
+      } else {
+        router.push("/register");
+      }
+    } else if (action === "enterprise") {
+      // Enterprise - contact page or email
+      router.push("/about");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-stone-100 to-zinc-200 dark:from-zinc-900 dark:via-neutral-900 dark:to-black text-zinc-900 dark:text-zinc-100">
@@ -96,9 +136,9 @@ export default function PricingPage() {
                 <Button 
                   className="w-full"
                   variant={plan.popular ? "default" : "outline"}
-                  onClick={() => router.push("/register")}
+                  onClick={() => handlePlanSelect(plan.action)}
                 >
-                  Get Started
+                  {plan.action === "enterprise" ? "Contact Us" : user && plan.action === "pro" ? "Subscribe Now" : "Get Started"}
                 </Button>
               </CardContent>
             </Card>

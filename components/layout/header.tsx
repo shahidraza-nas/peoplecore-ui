@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Users2, User, LogOut, Newspaper } from "lucide-react";
+import { Users2, User, LogOut, Newspaper, CreditCard } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import Link from "next/link";
 import { NotificationDropdown } from "./NotificationDropdown";
@@ -73,6 +73,10 @@ export function Header() {
                             <DropdownMenuItem onClick={() => router.push("/profile")}>
                                 <User className="w-4 h-4 mr-2" />
                                 Profile Settings
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => router.push("/subscription")}>
+                                <CreditCard className="w-4 h-4 mr-2" />
+                                Subscription
                             </DropdownMenuItem>
                             {user?.role === 'Admin' && (
                                 <DropdownMenuItem onClick={() => router.push("/employees")}>

@@ -45,11 +45,10 @@ export const getHttpOption = async (options: HttpOptions): Promise<Headers> => {
   }
   if (!isMultipart) headers.set("Content-Type", "application/json");
   if (!!secured) {
-    // Use NextAuth session for both server-side and client-side
-    const session = typeof window === "undefined" 
-      ? await auth()  // Server-side: use auth()
-      : await getSession();  // Client-side: use getSession()
-    
+    const session = typeof window === "undefined"
+      ? await auth()
+      : await getSession();
+
     if (session?.user) {
       headers.set("Authorization", `Bearer ${(session.user as any).accessToken}`);
     }
@@ -606,6 +605,32 @@ const CreateChat = async (userUid: string) => {
   return Create('chat', { userUid });
 };
 
+/**
+ * Subscription API Methods
+ */
+
+const GetSubscriptionStatus = async () => {
+  return Get('subscription/status');
+};
+
+const CreateCheckoutSession = async (data?: { amount?: number; planType?: string }) => {
+  return Post('subscription/create-checkout-session', data || {});
+};
+
+const ProcessPayment = async (sessionId: string) => {
+  return Get(`subscription/process-payment/${sessionId}`);
+};
+
+const CancelSubscription = async (immediate: boolean = false) => {
+  const params = immediate ? { data: { immediate: 'true' } } : undefined;
+  console.log('[CancelSubscription] immediate:', immediate, 'params:', params);
+  return Delete('subscription/cancel', params);
+};
+
+const ReactivateSubscription = async () => {
+  return Post('subscription/reactivate', {});
+};
+
 export const API = {
   Create,
   DashboardStats,
@@ -631,4 +656,10 @@ export const API = {
   MarkChatAsRead,
   GetChatByUid,
   CreateChat,
+  // Subscription methods
+  GetSubscriptionStatus,
+  CreateCheckoutSession,
+  ProcessPayment,
+  CancelSubscription,
+  ReactivateSubscription,
 };

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Chat, ChatMessage, User } from '@/lib/types';
+import { Chat, ChatMessage, User } from '@/types';
 import { MessageBubble } from './MessageBubble';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,7 @@ export function ChatWindow({
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+    const hasMarkedAsReadRef = useRef<string | null>(null);
 
     const otherUser = activeChat && currentUser && activeChat.user1 && activeChat.user2
         ? Number(activeChat.user1.id) === Number(currentUser.id)
@@ -61,16 +62,27 @@ export function ChatWindow({
         }
     }, [activeChat]);
 
+    // Reset marked ref when chat changes
     useEffect(() => {
-        if (activeChat && messages.length > 0) {
-            const hasUnread = messages.some(
-                (m) => !m.isRead && m.toUserId === currentUser?.id
-            );
-            if (hasUnread) {
-                onMarkAsRead(activeChat.uid);
-            }
+        hasMarkedAsReadRef.current = null;
+    }, [activeChat?.uid]);
+
+    // Auto-mark as read when opening chat with unread messages
+    useEffect(() => {
+        if (!activeChat || !currentUser) return;
+        
+        // Only run once per chat
+        if (hasMarkedAsReadRef.current === activeChat.uid) return;
+
+        const hasUnread = messages.some(
+            (m) => !m.isRead && m.toUserId === currentUser.id
+        );
+        
+        if (hasUnread) {
+            onMarkAsRead(activeChat.uid);
+            hasMarkedAsReadRef.current = activeChat.uid;
         }
-    }, [activeChat, messages, currentUser, onMarkAsRead]);
+    }, [activeChat?.uid, currentUser?.id]);
 
     const handleSend = async () => {
         if (!messageText.trim() || !otherUser || sending) return;
