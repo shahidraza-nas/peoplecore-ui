@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { onMessage, offMessage, onTyping, offTyping, onUserOnline, offUserOnline, onUserOffline, offUserOffline, onOnlineUsersList, offOnlineUsersList, emitMessage, emitTyping, onMessagesRead, offMessagesRead } from '@/lib/socket';
+import { onMessage, offMessage, onTyping, offTyping, onUserOnline, offUserOnline, onUserOffline, offUserOffline, onOnlineUsersList, offOnlineUsersList, emitTyping, emitMessage, onMessagesRead, offMessagesRead } from '@/lib/socket';
 import { useSocketContext } from '@/contexts/socket';
 import {
     getMyChats,
     getChatMessages,
-    sendMessage as apiSendMessage,
     markChatAsRead,
 } from '@/actions/chat.action';
 import type { Chat, ChatMessage, User } from '@/types';
@@ -371,47 +370,37 @@ export const useChat = (user: User | null): UseChatReturn => {
     }, [activeChat?.uid, markAsRead]);
 
     const sendMessage = useCallback(async (toUserUid: string, message: string) => {
-        if (!user || !message.trim()) return;
+        if (!user || !message.trim() || !socket?.connected || !activeChat) {
+            console.warn('[useChat] Cannot send message:', { 
+                hasUser: !!user, 
+                hasMessage: !!message.trim(), 
+                socketConnected: socket?.connected,
+                hasActiveChat: !!activeChat 
+            });
+            toast.error('Cannot send message. Please check your connection.');
+            return;
+        }
 
         setSending(true);
         try {
-            const response = await apiSendMessage({ toUserUid, message: message.trim() });
-            if (!response.success || response.error) {
-                if (isSubscriptionError(response.error)) {
-                    showSubscriptionError('Active subscription required to send messages');
-                } else {
-                    toast.error('Failed to send message');
-                }
-                return;
-            }
-            const sentMessage = response.data?.message;
-            if (sentMessage) {
-                setChats((prevChats) => {
-                    const updatedChats = prevChats.map((chat) =>
-                        chat.id === sentMessage.chatId
-                            ? { ...chat, messages: [sentMessage], updated_at: sentMessage.created_at }
-                            : chat
-                    );
-                    return updatedChats.sort((a, b) => {
-                        const aTime = a.messages?.[0]?.created_at || a.updated_at || a.created_at;
-                        const bTime = b.messages?.[0]?.created_at || b.updated_at || b.created_at;
-                        return new Date(bTime).getTime() - new Date(aTime).getTime();
-                    });
-                });
-            }
+            console.log('[useChat] Sending message via WebSocket:', { 
+                toUserUid, 
+                chatUid: activeChat.uid, 
+                messageLength: message.trim().length 
+            });
 
-            if (socket?.connected) {
-                console.log('[useChat] Emitting message via socket');
-                emitMessage(socket, { toUserUid, message: message.trim() });
-            } else {
-                console.warn('[useChat] Socket not connected, message sent via API only');
-            }
+            // Send message via WebSocket
+            emitMessage(socket, { 
+                toUserUid, 
+                chatUid: activeChat.uid, 
+                message: message.trim() 
+            });
+
+            console.log('[useChat] Message emitted successfully');
 
             // Auto-mark as read when sending message (user is actively engaged in chat)
-            if (activeChat) {
-                console.log('[useChat] Auto-marking chat as read after sending message');
-                await markAsRead(activeChat.uid);
-            }
+            console.log('[useChat] Auto-marking chat as read after sending message');
+            await markAsRead(activeChat.uid);
 
             // Refresh unread count after sending to update bell icon
             if (typeof window !== 'undefined') {
@@ -419,6 +408,7 @@ export const useChat = (user: User | null): UseChatReturn => {
                 window.dispatchEvent(new CustomEvent('chat-read'));
             }
         } catch (error) {
+            console.error('[useChat] Error sending message:', error);
             toast.error('Failed to send message');
         } finally {
             setSending(false);

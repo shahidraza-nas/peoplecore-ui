@@ -15,11 +15,12 @@ export const getSocket = (): Socket | null => {
 };
 
 // Event emitters - these now require socket to be passed from context
-export const emitMessage = (socket: Socket | null, data: { toUserUid: string; message: string }) => {
+export const emitMessage = (socket: Socket | null, data: { toUserUid: string; chatUid: string; message: string }) => {
     if (!socket?.connected) {
         console.warn('[lib/socket] Cannot emit message - socket not connected');
         return;
     }
+    console.log('[lib/socket] Emitting message event:', data);
     socket.emit('user.message', data);
 };
 
