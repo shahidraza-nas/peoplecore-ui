@@ -165,7 +165,8 @@ export default function ChatPage() {
             {isInGracePeriod && user?.role !== 'Admin' && (
                 <div className="mb-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
                     <div className="flex items-start gap-3">
-                        <Lock className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                        {/* <Lock className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" /> */}
+                        <Lock className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
                         <div className="flex-1">
                             <h4 className="font-semibold text-orange-900 dark:text-orange-100">Grace Period Active</h4>
                             <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">
@@ -180,7 +181,8 @@ export default function ChatPage() {
             )}
 
             {/* Header */}
-            <div className="flex items-center gap-4 mb-4 flex-shrink-0">
+            {/* <div className="flex items-center gap-4 mb-4 flex-shrink-0"> */}
+            <div className="flex items-center gap-4 mb-4 shrink-0">
                 <Button variant="ghost" size="icon" onClick={() => router.back()}>
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
