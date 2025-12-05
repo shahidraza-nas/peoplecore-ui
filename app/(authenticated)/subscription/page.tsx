@@ -160,8 +160,8 @@ export default function SubscriptionPage() {
     return (
       <div className="space-y-8 max-w-4xl mx-auto py-8">
         {/* Hero Section */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-500 via-violet-500 to-indigo-600 p-8 md:p-12 text-white">
-          <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
+        <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-purple-500 via-violet-500 to-indigo-600 p-8 md:p-12 text-white">
+          <div className="absolute inset-0 bg-grid-white/[0.05] bg-size-[20px_20px]" />
           <div className="relative z-10">
             <div className="flex items-center gap-3 mb-4">
               <div className="p-3 bg-white/20 backdrop-blur-sm rounded-2xl">
@@ -214,8 +214,8 @@ export default function SubscriptionPage() {
     return (
       <div className="space-y-8 max-w-5xl mx-auto py-8">
         {/* Hero Card */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500 p-8 md:p-12 text-white">
-          <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
+        <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-blue-500 via-cyan-500 to-teal-500 p-8 md:p-12 text-white">
+          <div className="absolute inset-0 bg-grid-white/[0.05] bg-size-[20px_20px]" />
           <div className="absolute top-20 right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
           <div className="absolute bottom-10 left-10 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
 
@@ -269,7 +269,7 @@ export default function SubscriptionPage() {
             <Card key={i} className="group hover:shadow-lg transition-all duration-300 border-2 hover:border-primary/50">
               <CardContent className="p-6">
                 <div className="flex gap-4">
-                  <div className="flex-shrink-0 p-3 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                  <div className="shrink-0 p-3 rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
                     <feature.icon className="w-6 h-6 text-primary" />
                   </div>
                   <div>
@@ -320,12 +320,12 @@ export default function SubscriptionPage() {
       <div className={cn(
         "relative overflow-hidden rounded-3xl p-8 md:p-10 text-white transition-all duration-300",
         subscription.status === Status.ACTIVE
-          ? "bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600"
+          ? "bg-linear-to-br from-emerald-500 via-green-500 to-teal-600"
           : subscription.status === Status.EXPIRED
-            ? "bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-600"
-            : "bg-gradient-to-br from-zinc-500 via-gray-500 to-slate-600"
+            ? "bg-linear-to-br from-orange-500 via-amber-500 to-yellow-600"
+            : "bg-linear-to-br from-zinc-500 via-gray-500 to-slate-600"
       )}>
-        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-size-[20px_20px]" />
         <div className="absolute top-10 right-10 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
 
         <div className="relative z-10">
@@ -381,7 +381,7 @@ export default function SubscriptionPage() {
           {/* Grace Period Warning */}
           {isInGracePeriod && (
             <div className="mt-4 flex items-center gap-3 p-4 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 shrink-0" />
               <p className="text-sm">
                 <strong>Grace Period Active:</strong> Renew within 3 days to maintain uninterrupted access to chat features.
               </p>
@@ -448,7 +448,7 @@ export default function SubscriptionPage() {
       <div className="grid md:grid-cols-2 gap-6">
         {/* Chat Access Status */}
         <Card className="border-2 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-transparent" />
           <CardHeader className="relative z-10">
             <CardTitle className="flex items-center gap-2">
               {hasAccess ? (
