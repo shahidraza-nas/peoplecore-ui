@@ -614,7 +614,12 @@ const GetSubscriptionStatus = async () => {
 };
 
 const CreateCheckoutSession = async (data?: { amount?: number; planType?: string }) => {
-  return Post('subscription/create-checkout-session', data || {});
+  // Transform camelCase to snake_case for backend compatibility
+  const payload = data ? {
+    ...(data.amount && { amount: data.amount }),
+    ...(data.planType && { plan_type: data.planType }),
+  } : {};
+  return Post('subscription/create-checkout-session', payload);
 };
 
 const ProcessPayment = async (sessionId: string) => {
