@@ -204,7 +204,7 @@ export function ChatWindow({
                         ref={inputRef}
                         value={messageText}
                         onChange={handleInputChange}
-                        onKeyPress={handleKeyPress}
+                        onKeyUp={handleKeyPress}
                         placeholder="Type a message..."
                         disabled={sending}
                         className="flex-1 rounded-full px-4 h-11 bg-zinc-100 dark:bg-zinc-800 border-zinc-100 dark:border-zinc-700 focus-visible:ring-primary"
