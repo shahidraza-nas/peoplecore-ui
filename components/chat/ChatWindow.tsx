@@ -192,7 +192,7 @@ export function ChatWindow({
                 )}
             </ScrollArea>
 
-            <div className="border-t p-4 flex-shrink-0">
+            <div className="border-t p-4 shrink-0">
                 <form
                     onSubmit={(e) => {
                         e.preventDefault();
