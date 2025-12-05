@@ -70,14 +70,14 @@ export function ChatWindow({
     // Auto-mark as read when opening chat with unread messages
     useEffect(() => {
         if (!activeChat || !currentUser) return;
-        
+
         // Only run once per chat
         if (hasMarkedAsReadRef.current === activeChat.uid) return;
 
         const hasUnread = messages.some(
             (m) => !m.isRead && m.toUserId === currentUser.id
         );
-        
+
         if (hasUnread) {
             onMarkAsRead(activeChat.uid);
             hasMarkedAsReadRef.current = activeChat.uid;
@@ -140,7 +140,7 @@ export function ChatWindow({
     return (
         <div className="flex h-full flex-col min-h-0">
             {/* Header */}
-            <div className="flex items-center gap-3 border-b px-6 py-3 flex-shrink-0">
+            <div className="flex items-center gap-3 border-b px-6 py-3 shrink-0">
                 <div className="relative">
                     <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
                         <span className="text-sm font-semibold text-primary">
@@ -153,9 +153,8 @@ export function ChatWindow({
                         </span>
                     </div>
                     {otherUser && (
-                        <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${
-                            onlineUsers.has(Number(otherUser.id)) ? 'bg-green-500' : 'bg-gray-400'
-                        }`} />
+                        <span className={`absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background ${onlineUsers.has(Number(otherUser.id)) ? 'bg-green-500' : 'bg-gray-400'
+                            }`} />
                     )}
                 </div>
                 <div className="flex-1">
@@ -215,7 +214,7 @@ export function ChatWindow({
                         type="submit"
                         disabled={!messageText.trim() || sending}
                         size="icon"
-                        className="rounded-full h-11 w-11 flex-shrink-0"
+                        className="rounded-full h-11 w-11 shrink-0"
                     >
                         {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                     </Button>
