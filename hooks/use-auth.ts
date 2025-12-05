@@ -111,10 +111,9 @@ export function useAuth(): UseAuthReturn {
     setError(null);
 
     try {
+      await API.Post('auth/logout', {});
       const { disconnectSocket } = await import('@/contexts/socket');
       disconnectSocket();
-
-      await API.Post('auth/logout', {});
       await signOut({ redirect: false });
       toast.success('Logged out successfully');
       router.push('/login');
@@ -122,6 +121,10 @@ export function useAuth(): UseAuthReturn {
       const apiError = err as ApiError;
       setError(apiError);
       toast.error(apiError.message || 'Logout failed');
+      try {
+        const { disconnectSocket } = await import('@/contexts/socket');
+        disconnectSocket();
+      } catch {}
       await signOut({ redirect: false });
       router.push('/login');
     }

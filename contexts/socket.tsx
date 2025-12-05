@@ -47,7 +47,6 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         mountedRef.current = true;
         effectRunCount.current += 1;
-
         if (!token) {
             if (globalSocket) {
                 globalSocket.disconnect();
@@ -58,7 +57,6 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
             }
             return;
         }
-
         if (previousToken.current && previousToken.current !== token) {
             if (globalSocket) {
                 globalSocket.disconnect();
@@ -67,38 +65,31 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
                 hasInitialized = false;
             }
         }
-
         previousToken.current = token;
-
         if (globalSocket && globalSocket.connected) {
             if (mountedRef.current && !socket) {
                 setSocket(globalSocket);
             }
             return;
         }
-
         if (isConnecting) {
             return;
         }
-
         if (globalSocket && !globalSocket.connected) {
             if (mountedRef.current && !socket) {
                 setSocket(globalSocket);
             }
             return;
         }
-
         if (hasInitialized && globalSocket) {
             if (mountedRef.current && !socket) {
                 setSocket(globalSocket);
             }
             return;
         }
-
         isConnecting = true;
         hasInitialized = true;
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
-
         const socketIO = io(apiUrl, {
             transports: ["websocket"],
             query: { token },
@@ -107,23 +98,18 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
             forceNew: false, // Don't create new connection if one exists
             multiplex: true, // Share single connection
         });
-
         socketIO.on('connect', () => {
             const wasReconnecting = reconnectAttempts > 0;
             isConnecting = false;
             reconnectAttempts = 0;
-
             if (wasReconnecting) {
                 toast.success('Connected to chat server', { duration: 2000 });
             }
         });
-
         socketIO.on('connect_error', (error) => {
             isConnecting = false;
             reconnectAttempts++;
-
             const errorMessage = error.message.toLowerCase();
-
             if (errorMessage.includes('jwt expired') ||
                 errorMessage.includes('invalid token') ||
                 errorMessage.includes('unauthorized') ||
@@ -131,31 +117,25 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
                 toast.error('Session expired. Please login again.');
                 return;
             }
-
             if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
                 toast.error('Unable to connect to chat server. Retrying...', { duration: 3000 });
             }
         });
-
         socketIO.on('disconnect', (reason) => {
             isConnecting = false;
         });
-
         socketIO.on('reconnect_attempt', () => { });
-
         socketIO.on('reconnect_failed', () => {
             toast.error('Chat connection unavailable. Please refresh the page.', {
                 duration: 5000,
                 icon: '🔌'
             });
         });
-
         socketIO.on('error', (error) => {
             if (process.env.NODE_ENV === 'development') {
                 console.error('[Socket] Error:', error);
             }
         });
-
         globalSocket = socketIO;
         if (mountedRef.current) {
             setSocket(socketIO);
@@ -208,46 +188,37 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
     const fcmInitialized = useRef(false);
     const socketIdRef = useRef<string | undefined>(undefined);
 
-    // Initialize Firebase Cloud Messaging
+    /**
+     * Initialize Firebase Cloud Messaging
+     */
     useEffect(() => {
         if (fcmInitialized.current) return;
 
         const initializeFCM = async () => {
             try {
-                // Check if we already have a token stored
                 const existingToken = getFcmTokenFromStorage();
-
                 if (!existingToken) {
-                    // Request permission and get token
                     const fcmToken = await requestNotificationPermission();
 
                     if (fcmToken) {
                         saveFcmTokenToStorage(fcmToken);
                     }
                 }
-
-                // Listen for foreground messages
                 const unsubscribe = onMessageListener((payload) => {
                     const title = payload?.notification?.title || payload?.data?.title || "New Message";
                     const body = payload?.notification?.body || payload?.data?.body || "You have a new message";
-
-                    // Show browser notification
                     showNotification(title, {
                         body,
                         tag: payload?.data?.chatUid || 'chat-notification',
                         data: payload?.data,
                         requireInteraction: true,
                     });
-
-                    // Show toast notification
                     toast.success(`${title}: ${body}`, {
                         duration: 5000,
                         position: "top-right",
                     });
                 });
-
                 fcmInitialized.current = true;
-
                 return unsubscribe;
             } catch (error) {
                 console.error("[FCM] Initialization error:", error);
@@ -259,20 +230,15 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
 
     useEffect(() => {
         if (!socket) return;
-
         if (socketIdRef.current !== socket.id) {
             socketIdRef.current = socket.id;
         }
-
         const handleConnect = () => {
             socket.emit('getOnlineUsers');
         };
-
         const handleDisconnect = () => { };
-
         const handleConnectError = (error: Error) => {
             const errorMessage = error.message.toLowerCase();
-
             if (errorMessage.includes('jwt expired') ||
                 errorMessage.includes('invalid token') ||
                 errorMessage.includes('unauthorized') ||
@@ -281,7 +247,6 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
                 router.push('/login?expired=true');
             }
         };
-
         const handleNewMessage = (data: any) => {
             if (!window.location.pathname.includes('/chat')) {
                 showNotification("New Message", {
@@ -291,16 +256,13 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
                 });
             }
         };
-
         socket.on("connect", handleConnect);
         socket.on("disconnect", handleDisconnect);
         socket.on("connect_error", handleConnectError);
         socket.on("user.message", handleNewMessage);
-
         if (socket.connected) {
             socket.emit('getOnlineUsers');
         }
-
         return () => {
             socket.off("connect", handleConnect);
             socket.off("disconnect", handleDisconnect);

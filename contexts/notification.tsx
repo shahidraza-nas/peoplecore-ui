@@ -27,14 +27,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
-
-        // Check for existing token
         const existingToken = getFcmTokenFromStorage();
         if (existingToken) {
             setFcmToken(existingToken);
         }
-
-        // Request permission and get token
         const initializeFCM = async () => {
             try {
                 const currentPermission = Notification.permission;
@@ -51,26 +47,17 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                         // Don't throw - app can work without push notifications
                     }
                 }
-
-                // Listen for foreground messages
                 const unsubscribe = onMessageListener((payload) => {
                     const title = payload?.notification?.title || payload?.data?.title || 'New Notification';
                     const body = payload?.notification?.body || payload?.data?.body;
-                    
-                    // Show toast notification
                     toast(`${title}${body ? ': ' + body : ''}`, {
                         duration: 5000,
                         position: 'top-right',
                     });
-
-                    // Show browser notification for Windows
                     if (Notification.permission === 'granted') {
                         try {
-                            // Use unique tag with timestamp to ensure each notification appears
-                            // Windows groups notifications with same tag, so we make it unique
                             const chatUid = payload?.data?.chatUid || 'notification';
                             const uniqueTag = `${chatUid}-${Date.now()}`;
-                            
                             showNotification(title, {
                                 body: body || '',
                                 icon: '/images/icon-192x192.png',
@@ -85,17 +72,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                                 },
                             });
                         } catch (notifError) {
-                            // Failed to show notification (non-critical)
                         }
                     }
                 });
 
                 return unsubscribe;
             } catch (err) {
-                // Don't block app initialization if notifications fail
             }
         };
-
         initializeFCM();
     }, []);
 
