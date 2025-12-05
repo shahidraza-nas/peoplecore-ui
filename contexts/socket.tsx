@@ -102,7 +102,7 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         const socketIO = io(apiUrl, {
             transports: ["websocket"],
             query: { token },
-            reconnection: false, // DISABLE auto-reconnect to debug
+            reconnection: true, // DISABLE auto-reconnect to debug
             autoConnect: true,
             forceNew: false, // Don't create new connection if one exists
             multiplex: true, // Share single connection
