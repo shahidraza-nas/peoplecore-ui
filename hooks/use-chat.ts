@@ -48,32 +48,22 @@ export const useChat = (user: User | null): UseChatReturn => {
     const chatsLoaded = useRef(false);
     const markAsReadInProgressRef = useRef<Set<string>>(new Set());
 
-    console.log('[useChat] RENDER - Socket:', !!socket, 'Connected:', socket?.connected, 'ID:', socket?.id);
-
     useEffect(() => {
-        console.log('[useChat] Message listener effect - socket:', !!socket, 'connected:', socket?.connected, 'activeChat:', activeChat?.uid);
 
         if (!socket) {
-            console.warn('[useChat] No socket available for message listening');
             return;
         }
 
         const handleNewMessage = (data: { message: ChatMessage }) => {
-            console.log('[useChat] RECEIVED NEW MESSAGE:', data.message);
             const newMessage = data.message;
 
             if (activeChat && newMessage.chatId === activeChat.id) {
-                console.log('[useChat] Message is for active chat, adding to messages');
                 setMessages((prev) => {
                     if (prev.some((m) => m.uid === newMessage.uid)) {
-                        console.log('[useChat] Message already exists, skipping');
                         return prev;
                     }
-                    console.log('[useChat] Adding message to state');
                     return [...prev, newMessage];
                 });
-            } else {
-                console.log('[useChat] Message is NOT for active chat:', { messageChat: newMessage.chatId, activeChat: activeChat?.id });
             }
 
             setChats((prevChats) => {
@@ -100,11 +90,9 @@ export const useChat = (user: User | null): UseChatReturn => {
             }
         };
 
-        console.log('[useChat] Attaching message listener');
         onMessage(socket, handleNewMessage);
 
         return () => {
-            console.log('[useChat] Cleaning up message listener');
             offMessage(socket, handleNewMessage);
         };
     }, [socket, activeChat]);
@@ -113,13 +101,11 @@ export const useChat = (user: User | null): UseChatReturn => {
         if (!socket) return;
 
         const handleTyping = (data: { userId: number; chatUid: string; isTyping: boolean }) => {
-            console.log('[useChat] Received typing event:', data);
             if (activeChat && data.chatUid === activeChat.uid) {
                 setTypingUsers((prev) => {
                     const newSet = new Set(prev);
                     if (data.isTyping) {
                         newSet.add(data.userId);
-                        console.log('[useChat] User typing:', data.userId);
                         if (typingTimeoutRef.current[data.userId]) {
                             clearTimeout(typingTimeoutRef.current[data.userId]);
                         }
@@ -153,7 +139,6 @@ export const useChat = (user: User | null): UseChatReturn => {
         if (!socket) return;
 
         const handleUserOnline = (data: { userId: number }) => {
-            console.log('[useChat] User came online:', data.userId);
             setOnlineUsers((prev) => {
                 const newSet = new Set(prev);
                 newSet.add(data.userId);
@@ -162,7 +147,6 @@ export const useChat = (user: User | null): UseChatReturn => {
         };
 
         const handleUserOffline = (data: { userId: number }) => {
-            console.log('[useChat] User went offline:', data.userId);
             setOnlineUsers((prev) => {
                 const newSet = new Set(prev);
                 newSet.delete(data.userId);
@@ -171,7 +155,6 @@ export const useChat = (user: User | null): UseChatReturn => {
         };
 
         const handleOnlineUsersList = (data: { userIds: number[] }) => {
-            console.log('[useChat] Received online users list:', data.userIds);
             setOnlineUsers(new Set(data.userIds));
         };
 
@@ -190,7 +173,6 @@ export const useChat = (user: User | null): UseChatReturn => {
         if (!socket) return;
 
         const handleMessagesRead = (data: { chatUid: string; readBy: number }) => {
-            console.log('[useChat] Messages marked as read:', data);
             
             // Only update messages that were TO the reader (not sent BY the reader)
             if (activeChat && data.chatUid === activeChat.uid) {
@@ -305,14 +287,12 @@ export const useChat = (user: User | null): UseChatReturn => {
     const markAsRead = useCallback(async (chatUid: string) => {
         // Deduplication: prevent multiple concurrent API calls for same chat
         if (markAsReadInProgressRef.current.has(chatUid)) {
-            console.log('[useChat] markAsRead already in progress for:', chatUid);
             return;
         }
 
         markAsReadInProgressRef.current.add(chatUid);
 
         try {
-            console.log('[useChat] Marking chat as read:', chatUid);
             const result = await markChatAsRead(chatUid);
 
             if (!result.success) {
@@ -325,8 +305,6 @@ export const useChat = (user: User | null): UseChatReturn => {
                 }
                 return;
             }
-
-            console.log('[useChat] Successfully marked as read, updating state');
 
             // Update messages in current chat - only messages TO current user
             setMessages((prev) =>
@@ -346,7 +324,6 @@ export const useChat = (user: User | null): UseChatReturn => {
 
             // Immediately trigger refresh without delay for instant UI update
             if (typeof window !== 'undefined') {
-                console.log('[useChat] Dispatching chat-read event');
                 window.dispatchEvent(new CustomEvent('chat-read'));
             }
         } catch (error) {
@@ -371,24 +348,12 @@ export const useChat = (user: User | null): UseChatReturn => {
 
     const sendMessage = useCallback(async (toUserUid: string, message: string) => {
         if (!user || !message.trim() || !socket?.connected || !activeChat) {
-            console.warn('[useChat] Cannot send message:', { 
-                hasUser: !!user, 
-                hasMessage: !!message.trim(), 
-                socketConnected: socket?.connected,
-                hasActiveChat: !!activeChat 
-            });
             toast.error('Cannot send message. Please check your connection.');
             return;
         }
 
         setSending(true);
         try {
-            console.log('[useChat] Sending message via WebSocket:', { 
-                toUserUid, 
-                chatUid: activeChat.uid, 
-                messageLength: message.trim().length 
-            });
-
             // Send message via WebSocket
             emitMessage(socket, { 
                 toUserUid, 
@@ -396,15 +361,11 @@ export const useChat = (user: User | null): UseChatReturn => {
                 message: message.trim() 
             });
 
-            console.log('[useChat] Message emitted successfully');
-
             // Auto-mark as read when sending message (user is actively engaged in chat)
-            console.log('[useChat] Auto-marking chat as read after sending message');
             await markAsRead(activeChat.uid);
 
             // Refresh unread count after sending to update bell icon
             if (typeof window !== 'undefined') {
-                console.log('[useChat] Dispatching message-sent event to refresh unread count');
                 window.dispatchEvent(new CustomEvent('chat-read'));
             }
         } catch (error) {
@@ -431,17 +392,8 @@ export const useChat = (user: User | null): UseChatReturn => {
 
     const createNewChat = useCallback(async (userUid: string): Promise<Chat | null> => {
         try {
-            console.log('useChat: Creating new chat with userUid:', userUid);
             const { createChat } = await import('@/actions/chat.action');
             const response = await createChat(userUid);
-
-            console.log('useChat: Create chat response:', {
-                success: response.success,
-                hasData: !!response.data,
-                hasChat: !!response.data?.chat,
-                error: response.error,
-                fullResponse: response
-            });
 
             if (!response.success || response.error) {
                 console.error('useChat: Chat creation failed:', response.error);
@@ -464,7 +416,6 @@ export const useChat = (user: User | null): UseChatReturn => {
                 return null;
             }
 
-            console.log('useChat: Chat created successfully:', chat?.uid);
             return chat;
         } catch (error) {
             console.error('useChat: Exception creating chat:', error);

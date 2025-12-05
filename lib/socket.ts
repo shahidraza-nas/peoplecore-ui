@@ -1,42 +1,34 @@
 import { Socket } from 'socket.io-client';
 
 export const connectSocket = (token: string): Socket | null => {
-    console.warn('[lib/socket] connectSocket is deprecated - use SocketProvider context');
     return null;
 };
 
 export const disconnectSocket = () => {
-    console.warn('[lib/socket] disconnectSocket is deprecated - use context disconnectSocket');
 };
 
 export const getSocket = (): Socket | null => {
-    console.warn('[lib/socket] getSocket is deprecated - use useSocketContext hook');
     return null;
 };
 
 // Event emitters - these now require socket to be passed from context
 export const emitMessage = (socket: Socket | null, data: { toUserUid: string; chatUid: string; message: string }) => {
     if (!socket?.connected) {
-        console.warn('[lib/socket] Cannot emit message - socket not connected');
         return;
     }
-    console.log('[lib/socket] Emitting message event:', data);
     socket.emit('user.message', data);
 };
 
 export const emitTyping = (socket: Socket | null, data: { toUserId: number; isTyping: boolean; chatUid: string }) => {
     if (!socket?.connected) {
-        console.warn('[lib/socket] Cannot emit typing - socket not connected');
         return;
     }
-    console.log('[lib/socket] Emitting typing event:', data);
     socket.emit('user.typing', data);
 };
 
 // Event listeners - these now require socket to be passed from context
 export const onMessage = (socket: Socket | null, callback: (data: any) => void) => {
     if (!socket) {
-        console.warn('[lib/socket] Cannot listen to messages - no socket');
         return;
     }
     socket.on('user.message', callback);
@@ -44,37 +36,24 @@ export const onMessage = (socket: Socket | null, callback: (data: any) => void) 
 
 export const onTyping = (socket: Socket | null, callback: (data: any) => void) => {
     if (!socket) {
-        console.warn('[lib/socket] Cannot listen to typing - no socket');
         return;
     }
-    socket.on('user.typing', (data) => {
-        console.log('[lib/socket] Received typing event:', data);
-        callback(data);
-    });
+    socket.on('user.typing', callback);
 };
 
 export const onUserOnline = (socket: Socket | null, callback: (data: { userId: number }) => void) => {
     if (!socket) return;
-    socket.on('user.online', (data) => {
-        console.log('[lib/socket] User came online:', data);
-        callback(data);
-    });
+    socket.on('user.online', callback);
 };
 
 export const onUserOffline = (socket: Socket | null, callback: (data: { userId: number }) => void) => {
     if (!socket) return;
-    socket.on('user.offline', (data) => {
-        console.log('[lib/socket] User went offline:', data);
-        callback(data);
-    });
+    socket.on('user.offline', callback);
 };
 
 export const onOnlineUsersList = (socket: Socket | null, callback: (data: { userIds: number[] }) => void) => {
     if (!socket) return;
-    socket.on('onlineUsers.list', (data) => {
-        console.log('[lib/socket] Received online users list:', data);
-        callback(data);
-    });
+    socket.on('onlineUsers.list', callback);
 };
 
 export const offMessage = (socket: Socket | null, callback?: (data: any) => void) => {

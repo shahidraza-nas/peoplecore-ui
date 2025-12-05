@@ -48,15 +48,12 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                             saveFcmTokenToStorage(token);
                         }
                     } catch (tokenError) {
-                        console.warn('Failed to get FCM token (non-critical):', tokenError);
                         // Don't throw - app can work without push notifications
                     }
                 }
 
                 // Listen for foreground messages
                 const unsubscribe = onMessageListener((payload) => {
-                    console.log('[NotificationProvider] Foreground message received:', payload);
-                    
                     const title = payload?.notification?.title || payload?.data?.title || 'New Notification';
                     const body = payload?.notification?.body || payload?.data?.body;
                     
@@ -88,14 +85,13 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
                                 },
                             });
                         } catch (notifError) {
-                            console.warn('[NotificationProvider] Failed to show browser notification:', notifError);
+                            // Failed to show notification (non-critical)
                         }
                     }
                 });
 
                 return unsubscribe;
             } catch (err) {
-                console.warn('Unable to initialize notifications (non-critical):', err);
                 // Don't block app initialization if notifications fail
             }
         };

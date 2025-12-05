@@ -198,20 +198,10 @@ export async function createChat(userUid: string): Promise<{
     error?: any;
 }> {
     try {
-        console.log('🟢 createChat action: Creating chat with userUid:', userUid);
-        
         const response = await API.Create<{ userUid: string }, { chat: Chat }>(
             "chat",
             { userUid }
         );
-
-        console.log('🟢 createChat action: API response:', {
-            hasError: !!response.error,
-            hasData: !!response.data,
-            statusCode: response.statusCode,
-            error: response.error,
-            data: response.data
-        });
 
         if (response.error) {
             return { 

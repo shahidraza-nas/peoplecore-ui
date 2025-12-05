@@ -628,7 +628,6 @@ const ProcessPayment = async (sessionId: string) => {
 
 const CancelSubscription = async (immediate: boolean = false) => {
   const params = immediate ? { data: { immediate: 'true' } } : undefined;
-  console.log('[CancelSubscription] immediate:', immediate, 'params:', params);
   return Delete('subscription/cancel', params);
 };
 

@@ -60,7 +60,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const { data } = await API.Me<ApiMeResponse>();
 
       const unreadCount = data?.user?.unread_messages_count ?? 0;
-      console.log('[UserContext] ✅ Unread count updated:', unreadCount);
       setUnreadCount(unreadCount);
 
       setUser((prev) => {
@@ -110,11 +109,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Only set unread count from session on INITIAL load, not on every session update
       if (!hasInitializedRef.current) {
         const initialCount = session.user.unread_messages_count || 0;
-        console.log('[UserContext] 🎯 Initial load, setting count from session:', initialCount);
         setUnreadCount(initialCount);
         hasInitializedRef.current = true;
-      } else {
-        console.log('[UserContext] ⏭️ Session update, keeping current count');
       }
 
     } catch (err) {
@@ -146,12 +142,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (typeof window === 'undefined' || !user?.id) return;
 
     const handleChatRead = () => {
-      console.log('[UserContext] 📖 chat-read event received, fetching count...');
       fetchUnreadCount();
     };
 
     const handleMessageReceived = () => {
-      console.log('[UserContext] 📬 message-received event received, fetching count...');
       fetchUnreadCount();
     };
 
@@ -168,7 +162,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
     if (!socket || !user?.id) return;
 
     const handleMessagesRead = (data: { chatUid: string; readBy: number }) => {
-      console.log('[UserContext] 📨 Socket messages.read event received:', data);
       fetchUnreadCount();
     };
 

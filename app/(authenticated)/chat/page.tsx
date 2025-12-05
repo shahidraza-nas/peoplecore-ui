@@ -50,17 +50,7 @@ export default function ChatPage() {
         }
     }, [refreshChats]);
 
-    // Debug socket status
-    useEffect(() => {
-        console.log("=== CHAT PAGE DEBUG ===");
-        console.log("User:", user?.email);
-        console.log("Socket exists:", !!socket);
-        console.log("Socket connected:", socket?.connected);
-        console.log("Socket ID:", socket?.id);
-        console.log("Active chat:", activeChat?.uid);
-        console.log("Messages count:", messages.length);
-        console.log("=======================");
-    }, [socket, user, activeChat, messages.length]);
+
 
     useEffect(() => {
         const userUid = searchParams.get('user');

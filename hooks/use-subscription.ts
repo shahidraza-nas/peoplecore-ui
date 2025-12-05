@@ -104,19 +104,11 @@ export function useSubscription(): UseSubscriptionReturn {
             }
 
             const data = response.data as SubscriptionStatusResponse;
-            console.log('[getStatus] Backend response:', {
-                subscription: data.subscription,
-                access: data.access,
-                isCancelling: data.access.isCancelling,
-                cancel_at_period_end: data.subscription?.cancel_at_period_end
-            });
 
             setSubscription(data.subscription);
             setHasAccess(data.access.hasAccess);
             setIsCancelling(data.access.isCancelling);
             calculateDaysRemaining(data.subscription);
-
-            console.log('[getStatus] State updated - isCancelling:', data.access.isCancelling);
 
             // Cache access status for smoother navigation
             if (typeof window !== 'undefined') {
@@ -249,8 +241,6 @@ export function useSubscription(): UseSubscriptionReturn {
                 throw new Error(errorMsg);
             }
 
-            console.log('[cancelSubscription] Cancel API response:', response.data);
-
             /**
              * Fetch fresh status from backend to ensure UI is in sync
              * This is more reliable than manually setting state from cancel response
@@ -262,7 +252,6 @@ export function useSubscription(): UseSubscriptionReturn {
 
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to cancel subscription';
-            console.error('Cancellation error:', errorMessage, err);
 
             setError(err as ApiError);
             toast.error(errorMessage, { id: toastId });
@@ -290,8 +279,6 @@ export function useSubscription(): UseSubscriptionReturn {
                 throw new Error(errorMsg);
             }
 
-            console.log('[reactivateSubscription] Reactivate API response:', response.data);
-
             /**
              * Fetch fresh status from backend to ensure UI is in sync
              */
@@ -302,7 +289,6 @@ export function useSubscription(): UseSubscriptionReturn {
 
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to reactivate subscription';
-            console.error('Reactivation error:', errorMessage, err);
 
             setError(err as ApiError);
             toast.error(errorMessage, { id: toastId });

@@ -128,13 +128,8 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
                 errorMessage.includes('invalid token') ||
                 errorMessage.includes('unauthorized') ||
                 errorMessage.includes('authentication')) {
-                console.warn('[Socket] Authentication error - token expired');
                 toast.error('Session expired. Please login again.');
                 return;
-            }
-
-            if (process.env.NODE_ENV === 'development') {
-                console.log(`[Socket] Connection attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS} failed`);
             }
 
             if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
@@ -149,7 +144,6 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         socketIO.on('reconnect_attempt', () => { });
 
         socketIO.on('reconnect_failed', () => {
-            console.warn('[Socket] Reconnection failed after max attempts');
             toast.error('Chat connection unavailable. Please refresh the page.', {
                 duration: 5000,
                 icon: '🔌'
@@ -229,14 +223,11 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
 
                     if (fcmToken) {
                         saveFcmTokenToStorage(fcmToken);
-                        console.log("[FCM] Token obtained and saved:", fcmToken);
                     }
                 }
 
                 // Listen for foreground messages
                 const unsubscribe = onMessageListener((payload) => {
-                    console.log("[FCM] Foreground message received:", payload);
-
                     const title = payload?.notification?.title || payload?.data?.title || "New Message";
                     const body = payload?.notification?.body || payload?.data?.body || "You have a new message";
 
@@ -286,7 +277,6 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
                 errorMessage.includes('invalid token') ||
                 errorMessage.includes('unauthorized') ||
                 errorMessage.includes('authentication')) {
-                console.warn('[SocketEvents] Auth error detected, disconnecting and redirecting');
                 disconnectSocket();
                 router.push('/login?expired=true');
             }
