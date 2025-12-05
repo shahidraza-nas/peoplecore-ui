@@ -19,6 +19,7 @@ import {
     saveFcmTokenToStorage,
 } from "@/lib/firebase";
 import { toast } from "sonner";
+import { API } from "@/lib/fetch";
 
 interface SocketContextType {
     socket: Socket | null;
@@ -202,6 +203,11 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
 
                     if (fcmToken) {
                         saveFcmTokenToStorage(fcmToken);
+                        try {
+                            await API.Post('auth/info', { fcm: fcmToken });
+                        } catch (error) {
+                            console.error('Failed to update FCM token on backend:', error);
+                        }
                     }
                 }
                 const unsubscribe = onMessageListener((payload) => {
