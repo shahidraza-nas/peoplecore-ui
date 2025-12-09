@@ -3,7 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Disable React Strict Mode to prevent double socket connections
   reactStrictMode: false,
-  
+  // cacheComponents: true,
+  logging: {
+    fetches:{
+      fullUrl: true
+    }
+  },
   // Add headers for service worker
   async headers() {
     return [

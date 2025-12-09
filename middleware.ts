@@ -4,6 +4,7 @@ import {
   apiAuthPrefix,
   authRoutes,
   DEFAULT_LOGIN_REDIRECT,
+  publicCallbackRoutes,
   publicRoutes,
 } from "./lib/routes";
 
@@ -13,9 +14,12 @@ export default auth(async (request) => {
 
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
   const isPublicRoute = publicRoutes.includes(nextUrl.pathname);
+  const isPublicCallback = publicCallbackRoutes.some(route =>
+    nextUrl.pathname.startsWith(route)
+  );
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 
-  if (isApiAuthRoute) {
+  if (isApiAuthRoute || isPublicCallback) {
     return NextResponse.next();
   }
 

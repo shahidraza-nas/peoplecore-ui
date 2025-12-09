@@ -36,4 +36,15 @@ export const protectedRoutes: string[] = [
   "/employees",
   "/profile",
   "/settings",
+  "/subscription",
+  "/newsfeed",
+];
+
+/**
+ * Public routes that should be accessible to Stripe/external redirects
+ * @type {string[]}
+ */
+export const publicCallbackRoutes: string[] = [
+  "/subscription/success",
+  "/subscription/cancel",
 ];
