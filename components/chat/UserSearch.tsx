@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { User } from '@/lib/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Search, Loader2, X } from 'lucide-react';
 import { searchUsers as searchUsersAction } from '@/actions/user.action';
+import { User } from '@/types';
 
 
 interface UserSearchProps {

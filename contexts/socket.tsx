@@ -170,7 +170,7 @@ export const disconnectSocket = () => {
 };
 
 
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+if (typeof window !== 'undefined') {
     window.addEventListener('beforeunload', () => {
         disconnectSocket();
     });
