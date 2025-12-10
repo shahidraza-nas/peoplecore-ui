@@ -7,18 +7,31 @@ import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { UserSearch } from './UserSearch';
+import { useRef, useEffect } from 'react';
 
 interface ChatListProps {
   chats: Chat[];
   activeChat: Chat | null;
   currentUser: User | null;
   loading: boolean;
+  hasMoreChats: boolean;
   onlineUsers: Set<number>;
   onSelectChat: (chat: Chat) => void;
   onStartNewChat: (user: User) => void;
+  onLoadMore: () => Promise<void>;
 }
 
-export function ChatList({ chats, activeChat, currentUser, loading, onlineUsers, onSelectChat, onStartNewChat }: ChatListProps) {
+export function ChatList({ 
+  chats, 
+  activeChat, 
+  currentUser, 
+  loading, 
+  hasMoreChats, 
+  onlineUsers, 
+  onSelectChat, 
+  onStartNewChat,
+  onLoadMore 
+}: ChatListProps) {
   const getOtherUser = (chat: Chat): User | undefined => {
     if (!currentUser || !chat.user1 || !chat.user2) return undefined;
     return Number(chat.user1.id) === Number(currentUser.id) ? chat.user2 : chat.user1;
@@ -37,6 +50,25 @@ export function ChatList({ chats, activeChat, currentUser, loading, onlineUsers,
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+
+      if (isNearBottom && hasMoreChats && !loading) {
+        onLoadMore();
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, [hasMoreChats, loading, onLoadMore]);
 
   return (
     <div className="flex h-full flex-col">
@@ -62,7 +94,7 @@ export function ChatList({ chats, activeChat, currentUser, loading, onlineUsers,
       )}
 
       {chats.length > 0 && (
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1" ref={scrollAreaRef}>
           <div className="py-1">
             {chats.map((chat) => {
               const otherUser = getOtherUser(chat);
@@ -134,6 +166,21 @@ export function ChatList({ chats, activeChat, currentUser, loading, onlineUsers,
                 </button>
               );
             })}
+            
+            {/* Loading indicator for pagination */}
+            {loading && chats.length > 0 && hasMoreChats && (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Loading more chats...</span>
+              </div>
+            )}
+            
+            {/* End of list indicator */}
+            {!hasMoreChats && chats.length > 0 && (
+              <div className="py-3 text-center">
+                <p className="text-xs text-muted-foreground">No more chats</p>
+              </div>
+            )}
           </div>
         </ScrollArea>
       )}

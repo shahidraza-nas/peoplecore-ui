@@ -19,6 +19,7 @@ interface ChatWindowProps {
     onSendMessage: (toUserUid: string, message: string) => Promise<void>;
     onMarkAsRead: (chatUid: string) => Promise<void>;
     onTyping: (toUserId: number, isTyping: boolean, chatUid: string) => void;
+    onLoadMoreMessages: () => Promise<void>;
 }
 
 export function ChatWindow({
@@ -32,12 +33,16 @@ export function ChatWindow({
     onSendMessage,
     onMarkAsRead,
     onTyping,
+    onLoadMoreMessages,
 }: ChatWindowProps) {
     const [messageText, setMessageText] = useState('');
     const scrollAreaRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
     const hasMarkedAsReadRef = useRef<string | null>(null);
+    const previousMessageCountRef = useRef<number>(0);
+    const previousScrollHeightRef = useRef<number>(0);
+    const isLoadingMoreRef = useRef<boolean>(false);
 
     const otherUser = activeChat && currentUser && activeChat.user1 && activeChat.user2
         ? Number(activeChat.user1.id) === Number(currentUser.id)
@@ -46,13 +51,49 @@ export function ChatWindow({
         : null;
 
     useEffect(() => {
-        if (scrollAreaRef.current) {
-            const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-            if (scrollContainer) {
-                scrollContainer.scrollTop = scrollContainer.scrollHeight;
-            }
+        const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+        if (!scrollContainer) return;
+
+        const previousCount = previousMessageCountRef.current;
+        const currentCount = messages.length;
+
+        // If loading more (messages prepended to beginning)
+        if (isLoadingMoreRef.current && currentCount > previousCount) {
+            const previousScrollHeight = previousScrollHeightRef.current;
+            const currentScrollHeight = scrollContainer.scrollHeight;
+            const scrollHeightDiff = currentScrollHeight - previousScrollHeight;
+            
+            // Maintain scroll position by adjusting for new content height
+            scrollContainer.scrollTop = scrollHeightDiff;
+            isLoadingMoreRef.current = false;
+        } 
+        // New message arrived or initial load - scroll to bottom
+        else if (currentCount > previousCount || previousCount === 0) {
+            scrollContainer.scrollTop = scrollContainer.scrollHeight;
         }
+
+        previousMessageCountRef.current = currentCount;
     }, [messages]);
+
+    // Scroll detection for loading more messages (scroll to top)
+    useEffect(() => {
+        const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+        if (!scrollContainer) return;
+
+        const handleScroll = () => {
+            const { scrollTop } = scrollContainer;
+            const isNearTop = scrollTop < 100;
+
+            if (isNearTop && !loading && !isLoadingMoreRef.current) {
+                isLoadingMoreRef.current = true;
+                previousScrollHeightRef.current = scrollContainer.scrollHeight;
+                onLoadMoreMessages();
+            }
+        };
+
+        scrollContainer.addEventListener('scroll', handleScroll);
+        return () => scrollContainer.removeEventListener('scroll', handleScroll);
+    }, [loading, onLoadMoreMessages]);
 
     useEffect(() => {
         if (activeChat && inputRef.current) {

@@ -30,8 +30,11 @@ export default function ChatPage() {
         sending,
         typingUsers,
         onlineUsers,
+        hasMoreChats,
         setActiveChat,
         sendMessage,
+        loadMoreChats,
+        loadMoreMessages,
         markAsRead,
         setTyping,
         createNewChat,
@@ -194,9 +197,11 @@ export default function ChatPage() {
                             activeChat={activeChat}
                             currentUser={user}
                             loading={loading}
+                            hasMoreChats={hasMoreChats}
                             onlineUsers={onlineUsers}
                             onSelectChat={setActiveChat}
                             onStartNewChat={handleStartNewChat}
+                            onLoadMore={loadMoreChats}
                         />
                     </div>
 
@@ -213,6 +218,7 @@ export default function ChatPage() {
                             onSendMessage={handleSendMessage}
                             onMarkAsRead={markAsRead}
                             onTyping={handleSetTyping}
+                            onLoadMoreMessages={loadMoreMessages}
                         />
                     </div>
                 </div>
