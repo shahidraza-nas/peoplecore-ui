@@ -168,12 +168,12 @@ export function ChatList({
             })}
             
             {/* Loading indicator for pagination */}
-            {loading && chats.length > 0 && hasMoreChats && (
+            {/* {loading && chats.length > 0 && hasMoreChats && (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                 <span className="ml-2 text-sm text-muted-foreground">Loading more chats...</span>
               </div>
-            )}
+            )} */}
             
             {/* End of list indicator */}
             {!hasMoreChats && chats.length > 0 && (

@@ -50,6 +50,14 @@ export const useChat = (user: User | null): UseChatReturn => {
     const chatsLoaded = useRef(false);
     const markAsReadInProgressRef = useRef<Set<string>>(new Set());
 
+    const handleApiError = useCallback((error: unknown, defaultMessage: string) => {
+        if (isSubscriptionError(error)) {
+            showSubscriptionError();
+        } else {
+            toast.error(defaultMessage);
+        }
+    }, []);
+
     useEffect(() => {
         if (!socket) {
             return;
@@ -198,31 +206,20 @@ export const useChat = (user: User | null): UseChatReturn => {
         try {
             const response = await getMyChats({ offset, limit: 50 });
             if (!response.success || response.error) {
-                if (isSubscriptionError(response.error)) {
-                    showSubscriptionError();
-                } else {
-                    toast.error('Unable to load your conversations. Please try again.');
-                }
+                handleApiError(response.error, 'Unable to load your conversations. Please try again.');
                 return;
             }
-            const loadedChats = response.data?.chats || [];
             
+            const loadedChats = response.data?.chats || [];
             const sortedChats = loadedChats.sort((a, b) => {
                 const aTime = a.messages?.[0]?.created_at || a.updated_at || a.created_at;
                 const bTime = b.messages?.[0]?.created_at || b.updated_at || b.created_at;
                 return new Date(bTime).getTime() - new Date(aTime).getTime();
             });
             
-            const hasMore = loadedChats.length === 50;
-            setHasMoreChats(hasMore);
-            
-            if (offset === 0) {
-                setChats(sortedChats);
-                chatsLoaded.current = true;
-            } else {
-                setChats((prev) => [...prev, ...sortedChats]);
-            }
-            
+            setHasMoreChats(loadedChats.length === 50);
+            setChats(offset === 0 ? sortedChats : (prev) => [...prev, ...sortedChats]);
+            if (offset === 0) chatsLoaded.current = true;
             setChatOffset(offset);
         } catch (error) {
             console.error('Error loading chats:', error);
@@ -231,7 +228,7 @@ export const useChat = (user: User | null): UseChatReturn => {
             setLoading(false);
             isLoadingChats.current = false;
         }
-    }, [user]);
+    }, [user, handleApiError]);
 
     const loadMessages = useCallback(async (offset: number = 0) => {
         if (!activeChat || isLoadingMessages.current) return;
@@ -241,24 +238,13 @@ export const useChat = (user: User | null): UseChatReturn => {
         try {
             const response = await getChatMessages(activeChat.uid, { offset, limit: 50 });
             if (!response.success || response.error) {
-                if (isSubscriptionError(response.error)) {
-                    showSubscriptionError();
-                } else {
-                    toast.error('Failed to load messages');
-                }
+                handleApiError(response.error, 'Failed to load messages');
                 return;
             }
 
             const newMessages = response.data?.messages || [];
-            
-            const hasMore = newMessages.length === 50;
-            setHasMore(hasMore);
-
-            if (offset === 0) {
-                setMessages(newMessages.reverse());
-            } else {
-                setMessages((prev) => [...newMessages.reverse(), ...prev]);
-            }
+            setHasMore(newMessages.length === 50);
+            setMessages(offset === 0 ? newMessages.reverse() : (prev) => [...newMessages.reverse(), ...prev]);
             setMessageOffset(offset);
         } catch (error) {
             toast.error('Failed to load messages');
@@ -266,7 +252,7 @@ export const useChat = (user: User | null): UseChatReturn => {
             setLoading(false);
             isLoadingMessages.current = false;
         }
-    }, [activeChat]);
+    }, [activeChat, handleApiError]);
 
     useEffect(() => {
         if (user && !chatsLoaded.current) {
@@ -274,21 +260,17 @@ export const useChat = (user: User | null): UseChatReturn => {
         }
     }, [user?.id]);
     const markAsRead = useCallback(async (chatUid: string) => {
-        if (markAsReadInProgressRef.current.has(chatUid)) {
-            return;
-        }
+        if (markAsReadInProgressRef.current.has(chatUid)) return;
+        
         markAsReadInProgressRef.current.add(chatUid);
         try {
             const result = await markChatAsRead(chatUid);
             if (!result.success) {
                 console.error('[useChat] Failed to mark as read:', result.error);
-                if (isSubscriptionError(result.error)) {
-                    showSubscriptionError();
-                } else {
-                    toast.error('Failed to mark messages as read');
-                }
+                handleApiError(result.error, 'Failed to mark messages as read');
                 return;
             }
+            
             setMessages((prev) =>
                 prev.map((msg) =>
                     msg.chatId === activeChat?.id && msg.toUserId === user?.id
@@ -309,7 +291,7 @@ export const useChat = (user: User | null): UseChatReturn => {
         } finally {
             markAsReadInProgressRef.current.delete(chatUid);
         }
-    }, [activeChat, user?.id]);
+    }, [activeChat, user?.id, handleApiError]);
 
     useEffect(() => {
         if (activeChat) {
@@ -328,20 +310,21 @@ export const useChat = (user: User | null): UseChatReturn => {
             toast.error('Cannot send message. Please check your connection.');
             return;
         }
+        if (!socket) {
+            toast.error('Cannot send message. Please check your connection.');
+            return;
+        }
+        
         setSending(true);
         try {
-            if (socket) {
-                emitMessage(socket, {
-                    toUserUid,
-                    chatUid: activeChat.uid,
-                    message: message.trim()
-                });
-                await markAsRead(activeChat.uid);
-                if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new CustomEvent('chat-read'));
-                }
-            } else {
-                toast.error('Cannot send message. Please check your connection.');
+            emitMessage(socket, {
+                toUserUid,
+                chatUid: activeChat.uid,
+                message: message.trim()
+            });
+            await markAsRead(activeChat.uid);
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('chat-read'));
             }
         } catch (error) {
             toast.error('Failed to send message');
@@ -355,10 +338,10 @@ export const useChat = (user: User | null): UseChatReturn => {
         await loadMessages(messageOffset + 50);
     }, [hasMore, loading, messageOffset, loadMessages]);
 
-  const loadMoreChats = useCallback(async () => {
-    if (!hasMoreChats || loading) return;
-    await loadChats(chatOffset + 50);
-  }, [hasMoreChats, loading, chatOffset, loadChats]);    const refreshChats = useCallback(async () => {
+    const loadMoreChats = useCallback(async () => {
+        if (!hasMoreChats || loading) return;
+        await loadChats(chatOffset + 50);
+    }, [hasMoreChats, loading, chatOffset, loadChats]);    const refreshChats = useCallback(async () => {
         await loadChats(0);
         setChatOffset(0);
         setHasMoreChats(true);
