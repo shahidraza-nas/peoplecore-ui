@@ -1,12 +1,21 @@
 import { Socket } from 'socket.io-client';
 
+/**
+ * not in use
+ */
 export const connectSocket = (token: string): Socket | null => {
     return null;
 };
 
+/**
+ * not in use
+ */
 export const disconnectSocket = () => {
 };
 
+/**
+ * not in use
+ */
 export const getSocket = (): Socket | null => {
     return null;
 };

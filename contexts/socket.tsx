@@ -37,6 +37,17 @@ let hasInitialized = false;
 const MAX_RECONNECT_ATTEMPTS = 5;
 const RECONNECT_DELAY = 3000;
 
+/**
+ * Helper to check if error is authentication-related
+ * @param error 
+ * @returns 
+ */
+const isAuthError = (error: Error): boolean => {
+    const message = error.message.toLowerCase();
+    const authKeywords = ['jwt expired', 'invalid token', 'unauthorized', 'authentication'];
+    return authKeywords.some(keyword => message.includes(keyword));
+};
+
 export default function SocketProvider({ children }: { children: ReactNode }) {
     const [socket, setSocket] = useState<Socket | null>(null);
     const session = useSession();
@@ -110,14 +121,14 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         socketIO.on('connect_error', (error) => {
             isConnecting = false;
             reconnectAttempts++;
-            const errorMessage = error.message.toLowerCase();
-            if (errorMessage.includes('jwt expired') ||
-                errorMessage.includes('invalid token') ||
-                errorMessage.includes('unauthorized') ||
-                errorMessage.includes('authentication')) {
+
+            if (isAuthError(error)) {
                 toast.error('Session expired. Please login again.');
+                disconnectSocket();
+                window.location.href = '/login?expired=true';
                 return;
             }
+
             if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
                 toast.error('Unable to connect to chat server. Retrying...', { duration: 3000 });
             }
@@ -169,13 +180,6 @@ export const disconnectSocket = () => {
     }
 };
 
-
-if (typeof window !== 'undefined') {
-    window.addEventListener('beforeunload', () => {
-        disconnectSocket();
-    });
-}
-
 export const useSocketContext = (): SocketContextType => {
     const context = useContext(SocketContext);
     if (context === undefined) {
@@ -194,6 +198,8 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
      */
     useEffect(() => {
         if (fcmInitialized.current) return;
+
+        let cleanup: (() => void) | undefined;
 
         const initializeFCM = async () => {
             try {
@@ -231,7 +237,13 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
             }
         };
 
-        initializeFCM();
+        initializeFCM().then(unsub => {
+            cleanup = unsub;
+        });
+
+        return () => {
+            cleanup?.();
+        };
     }, []);
 
     useEffect(() => {
@@ -243,16 +255,6 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
             socket.emit('getOnlineUsers');
         };
         const handleDisconnect = () => { };
-        const handleConnectError = (error: Error) => {
-            const errorMessage = error.message.toLowerCase();
-            if (errorMessage.includes('jwt expired') ||
-                errorMessage.includes('invalid token') ||
-                errorMessage.includes('unauthorized') ||
-                errorMessage.includes('authentication')) {
-                disconnectSocket();
-                router.push('/login?expired=true');
-            }
-        };
         const handleNewMessage = (data: any) => {
             if (!window.location.pathname.includes('/chat')) {
                 showNotification("New Message", {
@@ -264,7 +266,6 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
         };
         socket.on("connect", handleConnect);
         socket.on("disconnect", handleDisconnect);
-        socket.on("connect_error", handleConnectError);
         socket.on("user.message", handleNewMessage);
         if (socket.connected) {
             socket.emit('getOnlineUsers');
@@ -272,7 +273,6 @@ export const SocketEvents = React.memo(function SocketEvents({ socket }: { socke
         return () => {
             socket.off("connect", handleConnect);
             socket.off("disconnect", handleDisconnect);
-            socket.off("connect_error", handleConnectError);
             socket.off("user.message", handleNewMessage);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps

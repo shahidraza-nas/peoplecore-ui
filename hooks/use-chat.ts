@@ -75,10 +75,15 @@ export const useChat = (user: User | null): UseChatReturn => {
             setChats((prevChats) => {
                 const updatedChats = prevChats.map((chat) => {
                     if (chat.id === newMessage.chatId) {
+                        const isForCurrentUser = newMessage.toUserId === user?.id;
+                        const isUnread = !newMessage.isRead;
                         return {
                             ...chat,
                             messages: [newMessage],
                             updated_at: newMessage.created_at,
+                            unread_count: isForCurrentUser && isUnread
+                                ? (chat.unread_count || 0) + 1
+                                : chat.unread_count,
                         };
                     }
                     return chat;
@@ -260,7 +265,9 @@ export const useChat = (user: User | null): UseChatReturn => {
         }
     }, [user?.id]);
     const markAsRead = useCallback(async (chatUid: string) => {
-        if (markAsReadInProgressRef.current.has(chatUid)) return;
+        if (markAsReadInProgressRef.current.has(chatUid)) {
+            return;
+        }
         
         markAsReadInProgressRef.current.add(chatUid);
         try {
@@ -299,11 +306,10 @@ export const useChat = (user: User | null): UseChatReturn => {
             loadMessages(0);
             setMessageOffset(0);
             setHasMore(true);
-            markAsRead(activeChat.uid);
         } else {
             setMessages([]);
         }
-    }, [activeChat?.uid, markAsRead]);
+    }, [activeChat?.uid, loadMessages]);
 
     const sendMessage = useCallback(async (toUserUid: string, message: string) => {
         if (!user || !message.trim() || !activeChat) {
@@ -322,7 +328,7 @@ export const useChat = (user: User | null): UseChatReturn => {
                 chatUid: activeChat.uid,
                 message: message.trim()
             });
-            await markAsRead(activeChat.uid);
+            // markAsRead removed - auto-mark effect handles this
             if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('chat-read'));
             }
@@ -331,7 +337,7 @@ export const useChat = (user: User | null): UseChatReturn => {
         } finally {
             setSending(false);
         }
-    }, [user, socket, activeChat, markAsRead]);
+    }, [user, socket, activeChat]);
 
     const loadMoreMessages = useCallback(async () => {
         if (!hasMore || loading) return;

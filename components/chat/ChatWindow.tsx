@@ -43,6 +43,8 @@ export function ChatWindow({
     const previousMessageCountRef = useRef<number>(0);
     const previousScrollHeightRef = useRef<number>(0);
     const isLoadingMoreRef = useRef<boolean>(false);
+    const autoMarkDebounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
+    const lastAutoMarkCountRef = useRef<number>(0);
 
     const otherUser = activeChat && currentUser && activeChat.user1 && activeChat.user2
         ? Number(activeChat.user1.id) === Number(currentUser.id)
@@ -62,11 +64,11 @@ export function ChatWindow({
             const previousScrollHeight = previousScrollHeightRef.current;
             const currentScrollHeight = scrollContainer.scrollHeight;
             const scrollHeightDiff = currentScrollHeight - previousScrollHeight;
-            
+
             // Maintain scroll position by adjusting for new content height
             scrollContainer.scrollTop = scrollHeightDiff;
             isLoadingMoreRef.current = false;
-        } 
+        }
         // New message arrived or initial load - scroll to bottom
         else if (currentCount > previousCount || previousCount === 0) {
             scrollContainer.scrollTop = scrollContainer.scrollHeight;
@@ -103,27 +105,119 @@ export function ChatWindow({
         }
     }, [activeChat]);
 
-    // Reset marked ref when chat changes
+    /**
+     * Reset state when switching between chats
+     * Clears the marked-as-read flag and message count to ensure
+     * proper auto-marking behavior for the new conversation
+     */
     useEffect(() => {
         hasMarkedAsReadRef.current = null;
+        lastAutoMarkCountRef.current = 0;
     }, [activeChat?.uid]);
 
-    // Auto-mark as read when opening chat with unread messages
+    /**
+     * Initial mark as read when opening a chat with unread messages
+     * 
+     * This effect runs ONCE per chat when it's first opened.
+     * It waits 300ms for messages to load, then marks any unread messages.
+     * 
+     * Note: Does NOT depend on messages array to avoid re-running on every change.
+     * The auto-mark effect below handles new incoming messages.
+     */
     useEffect(() => {
         if (!activeChat || !currentUser) return;
 
-        // Only run once per chat
         if (hasMarkedAsReadRef.current === activeChat.uid) return;
 
-        const hasUnread = messages.some(
-            (m) => !m.isRead && m.toUserId === currentUser.id
+        const timer = setTimeout(() => {
+            const hasUnread = messages.some(
+                (m) => !m.isRead && m.toUserId == currentUser.id
+            );
+
+            if (hasUnread) {
+                onMarkAsRead(activeChat.uid);
+            }
+            hasMarkedAsReadRef.current = activeChat.uid;
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [activeChat?.uid, currentUser?.id]);
+
+    /**
+     * Auto-mark new messages as read when they arrive while chat window is open
+     * 
+     * This effect triggers when:
+     * - A new message is added to the messages array
+     * - The chat window is currently viewing this conversation
+     * - The tab/window is visible
+     * 
+     * Important: Uses loose equality (==) for ID comparison because
+     * currentUser.id is a string while message.toUserId is a number.
+     * 
+     * The 500ms debounce prevents rapid API calls when multiple messages
+     * arrive in quick succession.
+     */
+    useEffect(() => {
+        if (!activeChat || !currentUser) return;
+
+        const hasNewMessages = messages.length > lastAutoMarkCountRef.current;
+        const previousCount = lastAutoMarkCountRef.current;
+        lastAutoMarkCountRef.current = messages.length;
+
+        if (!hasNewMessages || previousCount === 0) {
+            return;
+        }
+
+        const unreadMessages = messages.filter(
+            (m) => !m.isRead && m.toUserId == currentUser.id
         );
 
-        if (hasUnread) {
-            onMarkAsRead(activeChat.uid);
-            hasMarkedAsReadRef.current = activeChat.uid;
+        if (unreadMessages.length === 0) {
+            return;
         }
-    }, [activeChat?.uid, currentUser?.id]);
+
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+            return;
+        }
+
+        if (autoMarkDebounceRef.current) {
+            clearTimeout(autoMarkDebounceRef.current);
+        }
+
+        autoMarkDebounceRef.current = setTimeout(() => {
+            onMarkAsRead(activeChat.uid);
+        }, 500);
+
+        return () => {
+            if (autoMarkDebounceRef.current) {
+                clearTimeout(autoMarkDebounceRef.current);
+            }
+        };
+    }, [messages, activeChat?.uid, currentUser?.id, onMarkAsRead]);
+
+    /**
+     * Mark messages as read when user returns to the tab
+     * 
+     * Handles the case where messages arrive while the tab is hidden/backgrounded.
+     * When the user switches back to the tab, any unread messages are marked as read.
+     */
+    useEffect(() => {
+        if (!activeChat || !currentUser) return;
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                const hasUnread = messages.some(
+                    (m) => !m.isRead && m.toUserId == currentUser.id
+                );
+                if (hasUnread) {
+                    onMarkAsRead(activeChat.uid);
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [activeChat?.uid, currentUser?.id, messages, onMarkAsRead]);
 
     const handleSend = async () => {
         if (!messageText.trim() || !otherUser || sending) return;
