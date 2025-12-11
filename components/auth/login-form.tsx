@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import * as z from "zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { CheckCircle, Eye, EyeOff, Loader2 } from "lucide-react";
@@ -43,6 +43,7 @@ export function LoginForm({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<z.infer<typeof LoginSchema>>({
     resolver: zodResolver(LoginSchema),
@@ -84,7 +85,7 @@ export function LoginForm({
 
   const onVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!sessionId || otpCode.length !== 4) return;
+    if (!sessionId || otpCode.length !== 6) return;
 
     try {
       setLoading(true);
@@ -114,7 +115,7 @@ export function LoginForm({
           <CardHeader className="space-y-1 pb-6">
             <CardTitle className="text-2xl font-bold tracking-tight">Two-Factor Authentication</CardTitle>
             <CardDescription className="text-base">
-              Enter the 4-digit code sent to your email address
+              Enter the 6-digit code sent to your email address
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -125,10 +126,10 @@ export function LoginForm({
                   <Input
                     id="otp"
                     type="text"
-                    placeholder="0000"
+                    placeholder="000000"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                    maxLength={4}
+                    maxLength={6}
                     disabled={isLoading}
                     className="h-11 text-center text-lg tracking-widest font-semibold transition-all"
                   />
@@ -137,7 +138,7 @@ export function LoginForm({
                 <div className="flex flex-col gap-3 pt-2">
                   <Button
                     type="submit"
-                    disabled={isLoading || otpCode.length !== 4}
+                    disabled={isLoading || otpCode.length !== 6}
                     className="w-full h-11 font-semibold cursor-pointer transition-all hover:shadow-md"
                   >
                     {isLoading ? (
@@ -183,14 +184,21 @@ export function LoginForm({
             <div className="flex flex-col gap-5">
               <div className="grid gap-2">
                 <Label htmlFor="email" className="text-sm font-medium">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="name@example.com"
-                  {...register("email")}
-                  className={cn(
-                    "h-11 transition-all",
-                    errors.email && "border-destructive focus-visible:ring-destructive"
+                <Controller
+                  name="email"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <Input
+                      {...field}
+                      id="email"
+                      type="email"
+                      placeholder="name@example.com"
+                      className={cn(
+                        "h-11 transition-all",
+                        errors.email && "border-destructive focus-visible:ring-destructive"
+                      )}
+                    />
                   )}
                 />
                 {errors.email && (
@@ -215,14 +223,21 @@ export function LoginForm({
                   </a>
                 </div>
                 <div className="relative">
-                  <Input
-                    id="password"
-                    placeholder="Enter your password"
-                    type={showPassword ? "text" : "password"}
-                    {...register("password")}
-                    className={cn(
-                      "h-11 pr-10 transition-all",
-                      errors.password && "border-destructive focus-visible:ring-destructive"
+                  <Controller
+                    name="password"
+                    control={control}
+                    defaultValue=""
+                    render={({ field }) => (
+                      <Input
+                        {...field}
+                        id="password"
+                        placeholder="Enter your password"
+                        type={showPassword ? "text" : "password"}
+                        className={cn(
+                          "h-11 pr-10 transition-all",
+                          errors.password && "border-destructive focus-visible:ring-destructive"
+                        )}
+                      />
                     )}
                   />
                   <button
