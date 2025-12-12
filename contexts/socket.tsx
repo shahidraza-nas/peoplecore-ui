@@ -25,6 +25,13 @@ interface SocketContextType {
     socket: Socket | null;
 }
 
+interface MessageEventData {
+    message?: {
+        message: string;
+        chatUid: string;
+    };
+}
+
 export const SocketContext = createContext<SocketContextType | undefined>(
     undefined
 );
@@ -35,17 +42,40 @@ let isConnecting = false;
 let reconnectAttempts = 0;
 let hasInitialized = false;
 const MAX_RECONNECT_ATTEMPTS = 5;
-const RECONNECT_DELAY = 3000;
 
 /**
  * Helper to check if error is authentication-related
- * @param error 
- * @returns 
  */
 const isAuthError = (error: Error): boolean => {
     const message = error.message.toLowerCase();
     const authKeywords = ['jwt expired', 'invalid token', 'unauthorized', 'authentication'];
     return authKeywords.some(keyword => message.includes(keyword));
+};
+
+/**
+ * Helper to reset global socket state
+ */
+const resetSocketState = (): void => {
+    if (globalSocket) {
+        globalSocket.disconnect();
+        globalSocket = null;
+    }
+    isConnecting = false;
+    hasInitialized = false;
+    reconnectAttempts = 0;
+};
+
+/**
+ * Helper to sync socket to React state if mounted
+ */
+const syncSocketState = (
+    socket: Socket | null,
+    mountedRef: React.MutableRefObject<boolean>,
+    setSocket: React.Dispatch<React.SetStateAction<Socket | null>>
+): void => {
+    if (mountedRef.current) {
+        setSocket(socket);
+    }
 };
 
 export default function SocketProvider({ children }: { children: ReactNode }) {
@@ -54,61 +84,52 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
     const token = session.data?.user?.accessToken;
     const previousToken = useRef<string | undefined>(undefined);
     const mountedRef = useRef(true);
-    const effectRunCount = useRef(0);
 
     useEffect(() => {
         mountedRef.current = true;
-        effectRunCount.current += 1;
+
+        // No token - cleanup and exit
         if (!token) {
-            if (globalSocket) {
-                globalSocket.disconnect();
-                globalSocket = null;
-                isConnecting = false;
-                hasInitialized = false;
-                setSocket(null);
-            }
+            resetSocketState();
+            setSocket(null);
             return;
         }
+        // Token changed - force reconnect
         if (previousToken.current && previousToken.current !== token) {
-            if (globalSocket) {
-                globalSocket.disconnect();
-                globalSocket = null;
-                isConnecting = false;
-                hasInitialized = false;
-            }
+            resetSocketState();
         }
         previousToken.current = token;
-        if (globalSocket && globalSocket.connected) {
-            if (mountedRef.current && !socket) {
-                setSocket(globalSocket);
-            }
+        // Already connected - sync state
+        if (globalSocket?.connected) {
+            syncSocketState(globalSocket, mountedRef, setSocket);
             return;
         }
+        // Connection in progress - wait
         if (isConnecting) {
             return;
         }
+        // Socket exists but not connected - sync and let auto-reconnect handle it
         if (globalSocket && !globalSocket.connected) {
-            if (mountedRef.current && !socket) {
-                setSocket(globalSocket);
-            }
+            syncSocketState(globalSocket, mountedRef, setSocket);
             return;
         }
+        // Socket already initialized - sync state
         if (hasInitialized && globalSocket) {
-            if (mountedRef.current && !socket) {
-                setSocket(globalSocket);
-            }
+            syncSocketState(globalSocket, mountedRef, setSocket);
             return;
         }
+        // Create new socket connection
         isConnecting = true;
         hasInitialized = true;
+
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
         const socketIO = io(apiUrl, {
             transports: ["websocket"],
             query: { token },
-            reconnection: true, // DISABLE auto-reconnect to debug
+            reconnection: true,
             autoConnect: true,
-            forceNew: false, // Don't create new connection if one exists
-            multiplex: true, // Share single connection
+            forceNew: false,
+            multiplex: true,
         });
         socketIO.on('connect', () => {
             const wasReconnecting = reconnectAttempts > 0;
@@ -135,8 +156,13 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
         });
         socketIO.on('disconnect', (reason) => {
             isConnecting = false;
+
+            // Only log in development
+            if (process.env.NODE_ENV === 'development') {
+                console.log('[Socket] Disconnected:', reason);
+            }
         });
-        socketIO.on('reconnect_attempt', () => { });
+
         socketIO.on('reconnect_failed', () => {
             toast.error('Chat connection unavailable. Please refresh the page.', {
                 duration: 5000,
@@ -149,35 +175,23 @@ export default function SocketProvider({ children }: { children: ReactNode }) {
             }
         });
         globalSocket = socketIO;
-        if (mountedRef.current) {
-            setSocket(socketIO);
-        }
+        syncSocketState(socketIO, mountedRef, setSocket);
         return () => {
             mountedRef.current = false;
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
 
-    const value: SocketContextType = {
-        socket,
-    };
-
     return (
-        <SocketContext.Provider value={value}>
+        <SocketContext.Provider value={{ socket }}>
             {socket && <SocketEvents socket={socket} />}
             {children}
         </SocketContext.Provider>
     );
 }
 
-export const disconnectSocket = () => {
-    if (globalSocket) {
-        globalSocket.disconnect();
-        globalSocket = null;
-        isConnecting = false;
-        hasInitialized = false;
-        reconnectAttempts = 0;
-    }
+export const disconnectSocket = (): void => {
+    resetSocketState();
 };
 
 export const useSocketContext = (): SocketContextType => {
@@ -188,95 +202,98 @@ export const useSocketContext = (): SocketContextType => {
     return context;
 };
 
-export const SocketEvents = React.memo(function SocketEvents({ socket }: { socket: Socket }) {
-    const router = useRouter();
-    const fcmInitialized = useRef(false);
-    const socketIdRef = useRef<string | undefined>(undefined);
+export const SocketEvents = React.memo(
+    function SocketEvents({ socket }: { socket: Socket }) {
+        const router = useRouter();
+        const fcmInitialized = useRef(false);
 
-    /**
-     * Initialize Firebase Cloud Messaging
-     */
-    useEffect(() => {
-        if (fcmInitialized.current) return;
+        /**
+         * Initialize Firebase Cloud Messaging
+         */
+        useEffect(() => {
+            if (fcmInitialized.current) return;
 
-        let cleanup: (() => void) | undefined;
+            let cleanup: (() => void) | undefined;
 
-        const initializeFCM = async () => {
-            try {
-                const existingToken = getFcmTokenFromStorage();
-                if (!existingToken) {
-                    const fcmToken = await requestNotificationPermission();
+            const initializeFCM = async () => {
+                try {
+                    const existingToken = getFcmTokenFromStorage();
+                    if (!existingToken) {
+                        const fcmToken = await requestNotificationPermission();
 
-                    if (fcmToken) {
-                        saveFcmTokenToStorage(fcmToken);
-                        try {
-                            await API.Post('auth/info', { fcm: fcmToken });
-                        } catch (error) {
-                            console.error('Failed to update FCM token on backend:', error);
+                        if (fcmToken) {
+                            saveFcmTokenToStorage(fcmToken);
+                            try {
+                                await API.Post('auth/info', { fcm: fcmToken });
+                            } catch (error) {
+                                console.error('Failed to update FCM token on backend:', error);
+                            }
                         }
                     }
+                    const unsubscribe = onMessageListener((payload) => {
+                        const title = payload?.notification?.title || payload?.data?.title || "New Message";
+                        const body = payload?.notification?.body || payload?.data?.body || "You have a new message";
+                        showNotification(title, {
+                            body,
+                            tag: payload?.data?.chatUid || 'chat-notification',
+                            data: payload?.data,
+                            requireInteraction: true,
+                        });
+                        toast.success(`${title}: ${body}`, {
+                            duration: 5000,
+                            position: "top-right",
+                        });
+                    });
+                    fcmInitialized.current = true;
+                    return unsubscribe;
+                } catch (error) {
+                    console.error("[FCM] Initialization error:", error);
                 }
-                const unsubscribe = onMessageListener((payload) => {
-                    const title = payload?.notification?.title || payload?.data?.title || "New Message";
-                    const body = payload?.notification?.body || payload?.data?.body || "You have a new message";
-                    showNotification(title, {
-                        body,
-                        tag: payload?.data?.chatUid || 'chat-notification',
-                        data: payload?.data,
-                        requireInteraction: true,
+            };
+
+            initializeFCM().then(unsub => {
+                cleanup = unsub;
+            });
+
+            return () => {
+                cleanup?.();
+            };
+        }, []);
+
+        useEffect(() => {
+            if (!socket) return;
+
+            const handleConnect = () => {
+                socket.emit('getOnlineUsers');
+            };
+
+            const handleNewMessage = (data: MessageEventData) => {
+                // Only show notification if not on chat page
+                if (!window.location.pathname.includes('/chat')) {
+                    showNotification("New Message", {
+                        body: data.message?.message || "You have a new message",
+                        tag: data.message?.chatUid || 'chat-notification',
+                        data: { chatUid: data.message?.chatUid },
                     });
-                    toast.success(`${title}: ${body}`, {
-                        duration: 5000,
-                        position: "top-right",
-                    });
-                });
-                fcmInitialized.current = true;
-                return unsubscribe;
-            } catch (error) {
-                console.error("[FCM] Initialization error:", error);
+                }
+            };
+
+            socket.on("connect", handleConnect);
+            socket.on("user.message", handleNewMessage);
+
+            // Emit if already connected
+            if (socket.connected) {
+                socket.emit('getOnlineUsers');
             }
-        };
 
-        initializeFCM().then(unsub => {
-            cleanup = unsub;
-        });
+            return () => {
+                socket.off("connect", handleConnect);
+                socket.off("user.message", handleNewMessage);
+            };
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, [router]);
 
-        return () => {
-            cleanup?.();
-        };
-    }, []);
-
-    useEffect(() => {
-        if (!socket) return;
-        if (socketIdRef.current !== socket.id) {
-            socketIdRef.current = socket.id;
-        }
-        const handleConnect = () => {
-            socket.emit('getOnlineUsers');
-        };
-        const handleDisconnect = () => { };
-        const handleNewMessage = (data: any) => {
-            if (!window.location.pathname.includes('/chat')) {
-                showNotification("New Message", {
-                    body: data.message?.message || "You have a new message",
-                    tag: data.message?.chatUid || 'chat-notification',
-                    data: { chatUid: data.message?.chatUid },
-                });
-            }
-        };
-        socket.on("connect", handleConnect);
-        socket.on("disconnect", handleDisconnect);
-        socket.on("user.message", handleNewMessage);
-        if (socket.connected) {
-            socket.emit('getOnlineUsers');
-        }
-        return () => {
-            socket.off("connect", handleConnect);
-            socket.off("disconnect", handleDisconnect);
-            socket.off("user.message", handleNewMessage);
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [router]);
-
-    return null;
-}, (prevProps, nextProps) => prevProps.socket.id === nextProps.socket.id);
+        return null;
+    },
+    (prevProps, nextProps) => prevProps.socket.id === nextProps.socket.id
+);
