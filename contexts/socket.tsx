@@ -70,9 +70,9 @@ const resetSocketState = (): void => {
  */
 const syncSocketState = (
     socket: Socket | null,
-    mountedRef: React.MutableRefObject<boolean>,
+    mountedRef: { current: boolean },
     setSocket: React.Dispatch<React.SetStateAction<Socket | null>>
-): void => {
+) => {
     if (mountedRef.current) {
         setSocket(socket);
     }
