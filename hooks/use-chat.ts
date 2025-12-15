@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { onMessage, offMessage, onTyping, offTyping, onUserOnline, offUserOnline, onUserOffline, offUserOffline, onOnlineUsersList, offOnlineUsersList, emitTyping, emitMessage, onMessagesRead, offMessagesRead } from '@/lib/socket';
+import { onMessage, offMessage, onTyping, offTyping, onUserOnline, offUserOnline, onUserOffline, offUserOffline, onOnlineUsersList, offOnlineUsersList, emitTyping, emitMessage, onMessagesRead, offMessagesRead, onMessageReaction, offMessageReaction } from '@/lib/socket';
 import { useSocketContext } from '@/contexts/socket';
 import {
     getMyChats,
@@ -167,6 +167,12 @@ export const useChat = (user: User | null): UseChatReturn => {
     }, [socket]);
 
     useEffect(() => {
+        if (socket && activeChat) {
+            socket.emit('join', `chat_${activeChat.uid}`);
+        }
+    }, [socket, activeChat]);
+
+    useEffect(() => {
         if (!socket) return;
         const handleMessagesRead = (data: { chatUid: string; readBy: number }) => {
             if (activeChat && data.chatUid === activeChat.uid) {
@@ -202,6 +208,50 @@ export const useChat = (user: User | null): UseChatReturn => {
             offMessagesRead(socket, handleMessagesRead);
         };
     }, [socket, activeChat, user?.id]);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleMessageReaction = (data: { messageUid: string; emoji: string; userId: number; action: 'add' | 'remove' }) => {
+            console.log('Received message reaction:', data);
+            setMessages((prevMessages) =>
+                prevMessages.map((msg) => {
+                    if (msg.uid === data.messageUid) {
+                        console.log('Updating message:', msg.uid);
+                        const currentReactions = msg.reactions || {};
+                        const emojiReactions = currentReactions[data.emoji] || [];
+                        if (data.action === 'add') {
+                            if (!emojiReactions.includes(data.userId)) {
+                                emojiReactions.push(data.userId);
+                            }
+                            currentReactions[data.emoji] = emojiReactions;
+                        } else {
+                            const index = emojiReactions.indexOf(data.userId);
+                            if (index > -1) {
+                                emojiReactions.splice(index, 1);
+                            }
+                            if (emojiReactions.length === 0) {
+                                delete currentReactions[data.emoji];
+                            }
+                        }
+                        const updatedMsg = {
+                            ...msg,
+                            reactions: { ...currentReactions },
+                        };
+                        console.log('Updated message:', { uid: updatedMsg.uid, reactions: updatedMsg.reactions });
+                        return updatedMsg;
+                    }
+                    return msg;
+                })
+            );
+        };
+
+        onMessageReaction(socket, handleMessageReaction);
+
+        return () => {
+            offMessageReaction(socket, handleMessageReaction);
+        };
+    }, [socket]);
 
     const loadChats = useCallback(async (offset: number = 0) => {
         if (!user || isLoadingChats.current) return;

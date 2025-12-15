@@ -123,3 +123,17 @@ export const offMessagesRead = (socket: Socket | null, callback?: (data: any) =>
         socket.off('messages.read');
     }
 };
+
+export const onMessageReaction = (socket: Socket | null, callback: (data: { messageUid: string; emoji: string; userId: number; action: 'add' | 'remove' }) => void) => {
+    if (!socket) return;
+    socket.on('message:reaction', callback);
+};
+
+export const offMessageReaction = (socket: Socket | null, callback?: (data: any) => void) => {
+    if (!socket) return;
+    if (callback) {
+        socket.off('message:reaction', callback);
+    } else {
+        socket.off('message:reaction');
+    }
+};

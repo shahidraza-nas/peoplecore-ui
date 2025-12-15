@@ -40,9 +40,9 @@ export default function FeaturesPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 via-stone-100 to-zinc-200 dark:from-zinc-900 dark:via-neutral-900 dark:to-black text-zinc-900 dark:text-zinc-100">
+    <div className="min-h-screen bg-linear-to-br from-zinc-50 via-stone-100 to-zinc-200 dark:from-zinc-900 dark:via-neutral-900 dark:to-black text-zinc-900 dark:text-zinc-100">
       <AppHeader />
-      
+
       <main className="max-w-6xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Features</h1>

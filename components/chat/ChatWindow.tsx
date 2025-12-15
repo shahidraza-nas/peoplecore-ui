@@ -321,6 +321,7 @@ export function ChatWindow({
                                 message={message}
                                 currentUser={currentUser}
                                 isConsecutive={isConsecutive(index)}
+                                activeChat={activeChat}
                             />
                         ))}
                     </div>

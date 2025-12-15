@@ -23,7 +23,8 @@ export interface ChatMessage {
   message: string;
   isRead: boolean;
   type?: string;
-  reaction?: string;
+  reaction?: string; // Keep for backward compatibility
+  reactions?: Record<string, number[]>;
   fromUser?: User;
   toUser?: User;
   chat?: Chat;
